@@ -44,13 +44,20 @@ cp -R .build/Speech.app /Applications/
 
 ## Releasing
 
-**Current version:** 1.0.0
+**Current version:** 1.2.1
 
-When releasing to GitHub:
+### Release Workflow
 
-1. Bump version in `build_app.sh` (VERSION variable)
-2. Commit changes
-3. Tag: `git tag -a vX.Y.Z -m "vX.Y.Z - Description"`
-4. Push: `git push origin main --tags`
+1. **Bump version** in `build_app.sh` (VERSION variable)
+2. **Commit** changes with message: `vX.Y.Z: Brief description`
+3. **Push** to main: `git push origin master`
+4. **Create tag**: `git tag -a vX.Y.Z -m "vX.Y.Z - Description"`
+5. **Push tag**: `git push origin vX.Y.Z`
+6. **Create GitHub release**:
+   ```bash
+   gh release create vX.Y.Z --title "vX.Y.Z - Title" --notes "Release notes here"
+   ```
+
+❗ **Important**: Users with the app installed check for updates via GitHub releases. Without a release, they won't see the update.
 
 **Versioning:** Semantic versioning (MAJOR.MINOR.PATCH)
