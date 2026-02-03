@@ -49,12 +49,14 @@ class TextInjector {
     }
 
     private func simulatePaste() -> Bool {
-        // Try AppleScript first (most reliable)
-        if pasteViaAppleScript() {
-            return true
+        // Try AppleScript up to 3 times with small delays
+        for _ in 1...3 {
+            if pasteViaAppleScript() {
+                return true
+            }
+            usleep(100_000) // 100ms between retries
         }
-
-        // Fallback to CGEvent
+        // Final fallback to CGEvent
         return pasteViaCGEvent()
     }
 

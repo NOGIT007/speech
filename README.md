@@ -1,4 +1,4 @@
-# Speech
+# Speech to text
 
 A lightweight macOS menu bar app for speech-to-text using local Whisper models. All transcription happens on-device - no cloud services, no API keys, complete privacy.
 
@@ -24,7 +24,7 @@ A lightweight macOS menu bar app for speech-to-text using local Whisper models. 
 
 ### Download & Install
 
-1. Download the latest release from [Releases](https://github.com/kennetkusk/speech/releases)
+1. Download the latest release from [Releases](https://github.com/NOGIT007/speech/releases)
 2. Unzip and drag `Speech.app` to `/Applications`
 3. Open `Speech.app` from Applications
 
@@ -32,7 +32,7 @@ A lightweight macOS menu bar app for speech-to-text using local Whisper models. 
 
 ```bash
 # Clone the repository
-git clone https://github.com/kennetkusk/speech.git
+git clone https://github.com/NOGIT007/speech.git
 cd speech
 
 # Build the app
