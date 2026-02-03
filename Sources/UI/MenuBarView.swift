@@ -43,13 +43,36 @@ struct MenuBarView: View {
             Divider()
                 .padding(.vertical, 4)
 
-            Button("Quit Speech") {
-                NSApplication.shared.terminate(nil)
+            // Action buttons
+            HStack(spacing: 8) {
+                Button(action: relaunchApp) {
+                    Label("Relaunch", systemImage: "arrow.clockwise")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+
+                Button(action: { NSApplication.shared.terminate(nil) }) {
+                    Label("Quit", systemImage: "xmark.circle")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .keyboardShortcut("q", modifiers: .command)
             }
-            .keyboardShortcut("q", modifiers: .command)
+            .padding(.horizontal, 12)
+
+            // Version footer
+            Text("Speech v\(appVersion)")
+                .font(.system(size: 10))
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.top, 8)
         }
         .padding(.vertical, 8)
         .frame(width: 320)
+    }
+
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
     }
 
     // MARK: - Status Header
@@ -110,6 +133,18 @@ struct MenuBarView: View {
             case .downloading: return .yellow
             default: return .gray
             }
+        }
+    }
+
+    private func relaunchApp() {
+        let bundlePath = Bundle.main.bundlePath
+        let task = Process()
+        task.launchPath = "/usr/bin/open"
+        task.arguments = ["-n", bundlePath]
+        try? task.run()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            NSApplication.shared.terminate(nil)
         }
     }
 

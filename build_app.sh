@@ -3,7 +3,7 @@ set -e
 
 APP_NAME="Speech"
 BUNDLE_ID="com.speech.app"
-VERSION="1.0"
+VERSION="1.2.0"
 
 # Build the executable
 swift build -c release
@@ -59,6 +59,8 @@ cat > "$CONTENTS_DIR/Info.plist" << EOF
     <true/>
     <key>NSMicrophoneUsageDescription</key>
     <string>Speech needs microphone access to record your voice for transcription.</string>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>Speech needs to control other applications to paste transcribed text.</string>
     <key>NSHighResolutionCapable</key>
     <true/>
 </dict>

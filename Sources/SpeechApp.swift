@@ -13,7 +13,7 @@ struct SpeechApp: App {
         } label: {
             MenuBarIcon(isRecording: appState.isRecording, isTranscribing: appState.isTranscribing)
         }
-        .menuBarExtraStyle(.menu)
+        .menuBarExtraStyle(.window)
 
         Settings {
             SettingsView()

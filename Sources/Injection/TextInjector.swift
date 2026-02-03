@@ -16,11 +16,9 @@ class TextInjector {
         previousApp = NSWorkspace.shared.frontmostApplication
     }
 
-    func injectText(_ text: String) async {
-        // Set text to clipboard
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(text, forType: .string)
+    func injectText(_ text: String, autoPaste: Bool = true) async {
+        // Always copy to clipboard first
+        copyToClipboard(text)
 
         // Restore focus to the previous app
         if let app = previousApp {
@@ -32,12 +30,69 @@ class TextInjector {
                 try? await Task.sleep(nanoseconds: 25_000_000) // 25ms
                 attempts += 1
             }
+
+            // Additional delay for focus stability and modifier key release
+            try? await Task.sleep(nanoseconds: 500_000_000) // 500ms
         }
 
-        // Show notification to paste
-        showPasteNotification(preview: String(text.prefix(50)))
+        // Auto-paste using Cmd+V
+        if autoPaste && AXIsProcessTrusted() {
+            let success = simulatePaste()
+            if !success {
+                showPasteNotification(preview: String(text.prefix(50)))
+            }
+        } else {
+            showPasteNotification(preview: String(text.prefix(50)))
+        }
 
         previousApp = nil
+    }
+
+    private func simulatePaste() -> Bool {
+        // Try AppleScript first (most reliable)
+        if pasteViaAppleScript() {
+            return true
+        }
+
+        // Fallback to CGEvent
+        return pasteViaCGEvent()
+    }
+
+    private func pasteViaAppleScript() -> Bool {
+        let script = """
+        tell application "System Events"
+            keystroke "v" using command down
+        end tell
+        """
+
+        guard let appleScript = NSAppleScript(source: script) else { return false }
+        var error: NSDictionary?
+        appleScript.executeAndReturnError(&error)
+        return error == nil
+    }
+
+    private func pasteViaCGEvent() -> Bool {
+        let source = CGEventSource(stateID: .hidSystemState)
+
+        guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true),
+              let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false) else {
+            return false
+        }
+
+        keyDown.flags = .maskCommand
+        keyUp.flags = .maskCommand
+
+        keyDown.post(tap: .cgSessionEventTap)
+        usleep(50000) // 50ms
+        keyUp.post(tap: .cgSessionEventTap)
+
+        return true
+    }
+
+    private func copyToClipboard(_ text: String) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
     }
 
     private func showPasteNotification(preview: String) {

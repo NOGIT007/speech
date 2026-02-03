@@ -6,6 +6,7 @@ struct SettingsView: View {
     @AppStorage("launchAtLogin") private var launchAtLogin = false
     @State private var micPermission = false
     @State private var accessibilityPermission = false
+    @State private var inputMonitoringPermission = false
 
     var body: some View {
         TabView {
@@ -49,6 +50,13 @@ struct SettingsView: View {
                         Text(lang.displayName).tag(lang)
                     }
                 }
+            }
+
+            Section("Text Injection") {
+                Toggle("Auto-paste after transcription", isOn: $appState.autoPasteEnabled)
+                Text("When disabled, text is copied to clipboard only")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
         }
         .formStyle(.grouped)
@@ -150,6 +158,13 @@ struct SettingsView: View {
                     isGranted: accessibilityPermission,
                     action: openAccessibilitySettings
                 )
+
+                permissionRow(
+                    title: "Input Monitoring",
+                    description: "Required for keyboard simulation",
+                    isGranted: inputMonitoringPermission,
+                    action: openInputMonitoringSettings
+                )
             }
 
             Section {
@@ -169,6 +184,7 @@ struct SettingsView: View {
     private func refreshPermissions() {
         micPermission = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
         accessibilityPermission = AXIsProcessTrusted()
+        inputMonitoringPermission = PermissionsManager().hasInputMonitoringPermission
     }
 
     private func permissionRow(
@@ -206,6 +222,10 @@ struct SettingsView: View {
 
     private func openAccessibilitySettings() {
         PermissionsManager().openAccessibilitySettings()
+    }
+
+    private func openInputMonitoringSettings() {
+        PermissionsManager().openInputMonitoringSettings()
     }
 
     private func setLaunchAtLogin(_ enabled: Bool) {
