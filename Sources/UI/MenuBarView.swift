@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MenuBarView: View {
     @EnvironmentObject var appState: AppState
+    @StateObject private var updateManager = UpdateManager.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -60,15 +61,58 @@ struct MenuBarView: View {
             }
             .padding(.horizontal, 12)
 
-            // Version footer
-            Text("Speech v\(appVersion)")
-                .font(.system(size: 10))
-                .foregroundColor(.secondary)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.top, 8)
+            // Update section
+            updateSection
         }
         .padding(.vertical, 8)
         .frame(width: 320)
+    }
+
+    @ViewBuilder
+    private var updateSection: some View {
+        VStack(spacing: 4) {
+            if updateManager.isDownloading {
+                ProgressView(value: updateManager.downloadProgress)
+                    .padding(.horizontal, 12)
+                Text("Downloading update...")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+            } else if updateManager.updateAvailable, let version = updateManager.latestVersion {
+                Button(action: { Task { await updateManager.downloadAndInstall() } }) {
+                    Label("Update to v\(version)", systemImage: "arrow.down.circle")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .padding(.horizontal, 12)
+            } else {
+                HStack {
+                    Text("Speech v\(appVersion)")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+
+                    if updateManager.isChecking {
+                        ProgressView()
+                            .scaleEffect(0.5)
+                    } else {
+                        Button(action: { Task { await updateManager.checkForUpdates() } }) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 9))
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundColor(.secondary)
+                    }
+                }
+            }
+
+            if let error = updateManager.errorMessage {
+                Text(error)
+                    .font(.system(size: 9))
+                    .foregroundColor(.red)
+                    .lineLimit(2)
+                    .padding(.horizontal, 12)
+            }
+        }
+        .padding(.top, 8)
     }
 
     private var appVersion: String {
