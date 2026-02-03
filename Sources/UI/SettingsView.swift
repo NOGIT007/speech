@@ -52,9 +52,8 @@ struct SettingsView: View {
                 }
             }
 
-            Section("Text Injection") {
-                Toggle("Auto-paste after transcription", isOn: $appState.autoPasteEnabled)
-                Text("When disabled, text is copied to clipboard only")
+            Section("After Transcription") {
+                Text("Text is copied to clipboard. Press ⌘V to paste.")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

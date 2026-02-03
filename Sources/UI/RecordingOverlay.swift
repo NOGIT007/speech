@@ -4,7 +4,7 @@ import AppKit
 class RecordingOverlayWindow: NSWindow {
     init() {
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: 200, height: 80),
+            contentRect: NSRect(x: 0, y: 0, width: 180, height: 100),
             styleMask: [.borderless],
             backing: .buffered,
             defer: false
@@ -19,43 +19,88 @@ class RecordingOverlayWindow: NSWindow {
         let hostingView = NSHostingView(rootView: RecordingOverlayView())
         self.contentView = hostingView
 
-        // Position at top center of screen
+        // Position at center of screen
         if let screen = NSScreen.main {
-            let screenFrame = screen.visibleFrame
-            let x = screenFrame.midX - 100
-            let y = screenFrame.maxY - 100
+            let screenFrame = screen.frame
+            let x = screenFrame.midX - 90
+            let y = screenFrame.midY - 50
             self.setFrameOrigin(NSPoint(x: x, y: y))
         }
     }
 }
 
 struct RecordingOverlayView: View {
-    @State private var pulse = false
-
     var body: some View {
-        HStack(spacing: 12) {
-            // Pulsing red circle
-            Circle()
-                .fill(Color.red)
-                .frame(width: 16, height: 16)
-                .scaleEffect(pulse ? 1.2 : 1.0)
-                .animation(
-                    .easeInOut(duration: 0.5).repeatForever(autoreverses: true),
-                    value: pulse
-                )
+        VStack(spacing: 12) {
+            // Audio waveform oscillator
+            AudioWaveformView()
+                .frame(height: 40)
 
             Text("Recording...")
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(.white)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.white.opacity(0.9))
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 16)
         .background(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 16)
                 .fill(Color.black.opacity(0.85))
+                .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
         )
+    }
+}
+
+struct AudioWaveformView: View {
+    let barCount = 5
+    @State private var animating = false
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(0..<barCount, id: \.self) { index in
+                WaveformBar(delay: Double(index) * 0.1, animating: animating)
+            }
+        }
         .onAppear {
-            pulse = true
+            animating = true
+        }
+    }
+}
+
+struct WaveformBar: View {
+    let delay: Double
+    let animating: Bool
+
+    @State private var height: CGFloat = 8
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 3)
+            .fill(
+                LinearGradient(
+                    colors: [Color.blue, Color.cyan],
+                    startPoint: .bottom,
+                    endPoint: .top
+                )
+            )
+            .frame(width: 6, height: height)
+            .onAppear {
+                if animating {
+                    startAnimation()
+                }
+            }
+            .onChange(of: animating) { newValue in
+                if newValue {
+                    startAnimation()
+                }
+            }
+    }
+
+    private func startAnimation() {
+        withAnimation(
+            .easeInOut(duration: 0.4)
+            .repeatForever(autoreverses: true)
+            .delay(delay)
+        ) {
+            height = CGFloat.random(in: 20...40)
         }
     }
 }

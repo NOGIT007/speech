@@ -85,7 +85,7 @@ struct MenuBarView: View {
                 .buttonStyle(.borderedProminent)
                 .padding(.horizontal, 12)
             } else {
-                HStack {
+                HStack(spacing: 4) {
                     Text("Speech v\(appVersion)")
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
@@ -93,10 +93,24 @@ struct MenuBarView: View {
                     if updateManager.isChecking {
                         ProgressView()
                             .scaleEffect(0.5)
+                        Text("Checking...")
+                            .font(.system(size: 9))
+                            .foregroundColor(.secondary)
+                    } else if updateManager.latestVersion != nil && !updateManager.updateAvailable {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 9))
+                            .foregroundColor(.green)
+                        Text("Up to date")
+                            .font(.system(size: 9))
+                            .foregroundColor(.secondary)
                     } else {
                         Button(action: { Task { await updateManager.checkForUpdates() } }) {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 9))
+                            HStack(spacing: 2) {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 9))
+                                Text("Update")
+                                    .font(.system(size: 9))
+                            }
                         }
                         .buttonStyle(.plain)
                         .foregroundColor(.secondary)
