@@ -41,3 +41,16 @@ cp -R .build/Speech.app /Applications/
 
 - Microphone (audio recording)
 - Accessibility (text injection)
+
+## Releasing
+
+**Current version:** 1.0.0
+
+When releasing to GitHub:
+
+1. Bump version in `build_app.sh` (VERSION variable)
+2. Commit changes
+3. Tag: `git tag -a vX.Y.Z -m "vX.Y.Z - Description"`
+4. Push: `git push origin main --tags`
+
+**Versioning:** Semantic versioning (MAJOR.MINOR.PATCH)
