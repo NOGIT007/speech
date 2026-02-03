@@ -16,7 +16,7 @@ class TextInjector {
         previousApp = NSWorkspace.shared.frontmostApplication
     }
 
-    func injectText(_ text: String, autoPaste: Bool = true) async {
+    func injectText(_ text: String) async {
         // Copy to clipboard
         copyToClipboard(text)
 

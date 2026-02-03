@@ -13,10 +13,9 @@ class AppState: ObservableObject {
     @Published var transcriptionHistory: [TranscriptionItem] = []
     @Published var errorMessage: String?
     @Published var modelStatus: ModelStatus = .notDownloaded
-    @AppStorage("selectedModel") var selectedModel: WhisperModel = .tiny
+    @AppStorage("selectedModel") var selectedModel: WhisperModel = .small
     @Published var loadedModel: WhisperModel?
     @AppStorage("selectedLanguage") var selectedLanguage: TranscriptionLanguage = .english
-    @AppStorage("autoPasteEnabled") var autoPasteEnabled: Bool = true
     @Published var hotkeyConfig: HotkeyConfig {
         didSet {
             hotkeyConfig.save()
@@ -123,7 +122,7 @@ class AppState: ObservableObject {
 
                 // Inject text at cursor position
                 if !transcription.isEmpty {
-                    await TextInjector.shared.injectText(transcription, autoPaste: self.autoPasteEnabled)
+                    await TextInjector.shared.injectText(transcription)
                 }
 
                 // Clean up audio file

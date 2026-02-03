@@ -4,7 +4,7 @@ import AppKit
 class RecordingOverlayWindow: NSWindow {
     init() {
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: 180, height: 100),
+            contentRect: NSRect(x: 0, y: 0, width: 380, height: 220),
             styleMask: [.borderless],
             backing: .buffered,
             defer: false
@@ -22,8 +22,8 @@ class RecordingOverlayWindow: NSWindow {
         // Position at center of screen
         if let screen = NSScreen.main {
             let screenFrame = screen.frame
-            let x = screenFrame.midX - 90
-            let y = screenFrame.midY - 50
+            let x = screenFrame.midX - 190
+            let y = screenFrame.midY - 110
             self.setFrameOrigin(NSPoint(x: x, y: y))
         }
     }
@@ -31,21 +31,25 @@ class RecordingOverlayWindow: NSWindow {
 
 struct RecordingOverlayView: View {
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 14) {
             // Audio waveform oscillator
             AudioWaveformView()
-                .frame(height: 40)
+                .frame(height: 85)
 
             Text("Recording...")
-                .font(.system(size: 14, weight: .medium))
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(.white.opacity(0.9))
+
+            Text("Press ⌘V to paste")
+                .font(.system(size: 12, weight: .regular))
+                .foregroundColor(.white.opacity(0.6))
         }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 16)
+        .padding(.horizontal, 28)
+        .padding(.vertical, 20)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.black.opacity(0.85))
-                .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Color.black.opacity(0.6))
+                .shadow(color: .black.opacity(0.2), radius: 20, x: 0, y: 10)
         )
     }
 }
@@ -81,7 +85,7 @@ struct WaveformBar: View {
                     endPoint: .top
                 )
             )
-            .frame(width: 6, height: height)
+            .frame(width: 12, height: height)
             .onAppear {
                 if animating {
                     startAnimation()
@@ -100,7 +104,7 @@ struct WaveformBar: View {
             .repeatForever(autoreverses: true)
             .delay(delay)
         ) {
-            height = CGFloat.random(in: 20...40)
+            height = CGFloat.random(in: 35...80)
         }
     }
 }
