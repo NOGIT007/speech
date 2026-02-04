@@ -44,7 +44,7 @@ cp -R .build/Speech.app /Applications/
 
 ## Releasing
 
-**Current version:** 1.2.3
+**Current version:** 1.2.4
 
 ### Release Workflow
 
