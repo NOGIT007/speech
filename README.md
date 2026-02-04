@@ -71,9 +71,12 @@ Click the Speech menu bar icon and select a model to download:
 
 1. Click the menu bar icon to see the current status
 2. **Hold** `⌥Space` (Option + Space) to start recording
-3. Speak clearly
+3. **Wait ~1 second** for the recording overlay to appear, then speak clearly
 4. **Release** the hotkey to transcribe
-5. Press `⌘V` to paste the transcribed text
+5. Wait for the overlay to show **"Ready!"** with a green checkmark
+6. Press `⌘V` to paste the transcribed text
+
+> **Tip:** The overlay shows three states: **Recording** → **Processing** → **Ready**. Wait for "Ready" before pasting to ensure the new transcription is in your clipboard.
 
 The transcribed text is automatically copied to your clipboard and a notification shows a preview.
 

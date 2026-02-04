@@ -111,6 +111,7 @@ actor AudioRecorder {
 
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()
+        engine.reset()  // Explicitly release audio hardware
 
         audioFile = nil
         audioEngine = nil
