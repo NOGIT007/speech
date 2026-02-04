@@ -142,14 +142,16 @@ enum WhisperModel: String, CaseIterable, Identifiable {
     case tiny = "tiny"
     case base = "base"
     case small = "small"
+    case mediumEn = "medium.en"
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
-        case .tiny: return "Tiny (39 MB) - Fastest"
-        case .base: return "Base (74 MB) - Balanced"
-        case .small: return "Small (244 MB) - Best accuracy"
+        case .tiny: return "Tiny (75 MB) - Fastest"
+        case .base: return "Base (142 MB) - Balanced"
+        case .small: return "Small (466 MB) - Accurate"
+        case .mediumEn: return "Medium English (1.5 GB) - High Accuracy"
         }
     }
 
@@ -163,9 +165,10 @@ enum WhisperModel: String, CaseIterable, Identifiable {
 
     var fileSize: Int64 {
         switch self {
-        case .tiny: return 39_000_000
-        case .base: return 74_000_000
-        case .small: return 244_000_000
+        case .tiny: return 75_000_000
+        case .base: return 142_000_000
+        case .small: return 466_000_000
+        case .mediumEn: return 1_500_000_000
         }
     }
 }
