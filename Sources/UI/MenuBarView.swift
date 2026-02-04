@@ -210,14 +210,27 @@ struct MenuBarView: View {
 
     private var historySection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Recent")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(.secondary)
-                .padding(.horizontal, 12)
-                .padding(.bottom, 2)
+            HStack {
+                Text("Recent")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.secondary)
+                Spacer()
+                if appState.transcriptionHistory.count > 1 {
+                    Button("Clear") {
+                        appState.clearHistory()
+                    }
+                    .font(.system(size: 10))
+                    .buttonStyle(.plain)
+                    .foregroundColor(.secondary)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.bottom, 2)
 
             ForEach(appState.transcriptionHistory) { item in
-                TranscriptionRow(item: item)
+                TranscriptionRow(item: item, onDelete: {
+                    appState.deleteHistoryItem(id: item.id)
+                })
             }
         }
     }
@@ -243,32 +256,43 @@ struct MenuBarView: View {
 
 struct TranscriptionRow: View {
     let item: TranscriptionItem
+    let onDelete: () -> Void
     @State private var isHovered = false
 
     var body: some View {
-        Button(action: { copyToClipboard() }) {
-            HStack(spacing: 8) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(item.preview)
-                        .font(.system(size: 12))
-                        .lineLimit(2)
-                        .foregroundColor(.primary)
-                    Text(item.timeAgo)
-                        .font(.system(size: 10))
+        HStack(spacing: 4) {
+            Button(action: { copyToClipboard() }) {
+                HStack(spacing: 8) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(item.preview)
+                            .font(.system(size: 12))
+                            .lineLimit(2)
+                            .foregroundColor(.primary)
+                        Text(item.timeAgo)
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "doc.on.doc")
+                        .font(.system(size: 11))
                         .foregroundColor(.secondary)
+                        .opacity(isHovered ? 1 : 0.5)
                 }
-                Spacer()
-                Image(systemName: "doc.on.doc")
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
-                    .opacity(isHovered ? 1 : 0.5)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(isHovered ? Color.primary.opacity(0.1) : Color.clear)
-            .cornerRadius(4)
+            .buttonStyle(.plain)
+
+            // Delete button (always visible, brighter on hover)
+            Button(action: { onDelete() }) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(isHovered ? Color.primary.opacity(0.1) : Color.clear)
+        .cornerRadius(4)
         .onHover { hovering in
             isHovered = hovering
         }

@@ -97,8 +97,8 @@ class AppState: ObservableObject {
         isRecording = false
         isTranscribing = true
 
-        // Hide recording overlay, show transcribing
-        RecordingOverlayController.shared.hide()
+        // Show processing state in overlay
+        RecordingOverlayController.shared.showProcessing()
 
         Task {
             do {
@@ -120,9 +120,14 @@ class AppState: ObservableObject {
                     }
                 }
 
-                // Inject text at cursor position
+                // Inject text at cursor position (this also hides overlay)
                 if !transcription.isEmpty {
                     await TextInjector.shared.injectText(transcription)
+                }
+
+                // Show "Ready" overlay briefly, then hide
+                await MainActor.run {
+                    RecordingOverlayController.shared.showReadyThenHide()
                 }
 
                 // Clean up audio file
@@ -132,6 +137,7 @@ class AppState: ObservableObject {
                 await MainActor.run {
                     self.isTranscribing = false
                     self.errorMessage = "Transcription failed: \(error.localizedDescription)"
+                    RecordingOverlayController.shared.hide()
                 }
             }
         }
@@ -275,6 +281,16 @@ extension Notification.Name {
 }
 
 // MARK: - Transcription History
+
+extension AppState {
+    func deleteHistoryItem(id: UUID) {
+        transcriptionHistory.removeAll { $0.id == id }
+    }
+
+    func clearHistory() {
+        transcriptionHistory.removeAll()
+    }
+}
 
 struct TranscriptionItem: Identifiable {
     let id = UUID()

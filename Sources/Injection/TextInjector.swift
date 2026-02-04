@@ -17,8 +17,11 @@ class TextInjector {
     }
 
     func injectText(_ text: String) async {
-        // Copy to clipboard
+        // Set clipboard BEFORE focus restore
         copyToClipboard(text)
+
+        // Wait for clipboard to propagate system-wide
+        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
 
         // Restore focus to the previous app
         if let app = previousApp {
@@ -32,6 +35,15 @@ class TextInjector {
             }
         }
 
+        // Buffer after focus restoration
+        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+
+        // Set clipboard AGAIN after focus restore (ensures clipboard is fresh)
+        copyToClipboard(text)
+
+        // Final buffer
+        try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+
         // Show notification - user presses ⌘V to paste
         showPasteNotification(preview: String(text.prefix(50)))
 
@@ -41,7 +53,7 @@ class TextInjector {
     private func copyToClipboard(_ text: String) {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
-        pasteboard.setString(text, forType: .string)
+        pasteboard.writeObjects([text as NSString])
     }
 
     private func showPasteNotification(preview: String) {

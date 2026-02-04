@@ -1,7 +1,15 @@
 import SwiftUI
 import AppKit
 
+enum OverlayMode {
+    case recording
+    case processing
+    case ready
+}
+
 class RecordingOverlayWindow: NSWindow {
+    private var hostingView: NSHostingView<RecordingOverlayView>?
+
     init() {
         super.init(
             contentRect: NSRect(x: 0, y: 0, width: 380, height: 220),
@@ -16,7 +24,8 @@ class RecordingOverlayWindow: NSWindow {
         self.collectionBehavior = [.canJoinAllSpaces, .stationary]
         self.ignoresMouseEvents = true
 
-        let hostingView = NSHostingView(rootView: RecordingOverlayView())
+        let view = RecordingOverlayView(mode: .recording)
+        hostingView = NSHostingView(rootView: view)
         self.contentView = hostingView
 
         // Position at center of screen
@@ -27,22 +36,58 @@ class RecordingOverlayWindow: NSWindow {
             self.setFrameOrigin(NSPoint(x: x, y: y))
         }
     }
+
+    func setMode(_ mode: OverlayMode) {
+        hostingView?.rootView = RecordingOverlayView(mode: mode)
+    }
 }
 
 struct RecordingOverlayView: View {
+    let mode: OverlayMode
+
     var body: some View {
         VStack(spacing: 14) {
-            // Audio waveform oscillator
-            AudioWaveformView()
-                .frame(height: 85)
+            switch mode {
+            case .recording:
+                AudioWaveformView()
+                    .frame(height: 85)
 
-            Text("Recording...")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.white.opacity(0.9))
+                Text("Recording...")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.9))
 
-            Text("Press ⌘V to paste")
-                .font(.system(size: 12, weight: .regular))
-                .foregroundColor(.white.opacity(0.6))
+                Text("Release to transcribe")
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundColor(.white.opacity(0.6))
+
+            case .processing:
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    .scaleEffect(2)
+                    .frame(height: 85)
+
+                Text("Processing...")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.9))
+
+                Text("Will paste when ready")
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundColor(.white.opacity(0.6))
+
+            case .ready:
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 50))
+                    .foregroundColor(.green)
+                    .frame(height: 85)
+
+                Text("Ready!")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.9))
+
+                Text("Press ⌘V to paste")
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundColor(.white.opacity(0.6))
+            }
         }
         .padding(.horizontal, 28)
         .padding(.vertical, 20)
@@ -121,7 +166,23 @@ class RecordingOverlayController {
         if window == nil {
             window = RecordingOverlayWindow()
         }
+        window?.setMode(.recording)
         window?.orderFront(nil)
+    }
+
+    func showProcessing() {
+        window?.setMode(.processing)
+    }
+
+    func showReadyThenHide() {
+        window?.setMode(.ready)
+        // Hide after 1 second
+        Task {
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            await MainActor.run {
+                self.hide()
+            }
+        }
     }
 
     func hide() {
