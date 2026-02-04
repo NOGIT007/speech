@@ -48,14 +48,16 @@ cp -R .build/Speech.app /Applications/
 
 ### Release Workflow
 
-1. **Bump version** in `build_app.sh` (VERSION variable)
-2. **Commit** changes with message: `vX.Y.Z: Brief description`
-3. **Push** to main: `git push origin master`
-4. **Create tag**: `git tag -a vX.Y.Z -m "vX.Y.Z - Description"`
-5. **Push tag**: `git push origin vX.Y.Z`
-6. **Create GitHub release**:
+1. **Bump version** in `build_app.sh` (VERSION variable) and `CLAUDE.md`
+2. **Build the app**: `./build_app.sh` (must be AFTER version bump)
+3. **Commit** changes with message: `vX.Y.Z: Brief description`
+4. **Push** to main: `git push origin master`
+5. **Create tag**: `git tag -a vX.Y.Z -m "vX.Y.Z - Description"`
+6. **Push tag**: `git push origin vX.Y.Z`
+7. **Create GitHub release with binary**:
    ```bash
-   gh release create vX.Y.Z --title "vX.Y.Z - Title" --notes "Release notes here"
+   cd .build && zip -r Speech.app.zip Speech.app
+   gh release create vX.Y.Z Speech.app.zip --title "vX.Y.Z - Title" --notes "Release notes"
    ```
 
 ❗ **Important**: Users with the app installed check for updates via GitHub releases. Without a release, they won't see the update.
