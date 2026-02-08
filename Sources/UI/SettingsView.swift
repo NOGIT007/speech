@@ -25,7 +25,7 @@ struct SettingsView: View {
                     Label("Permissions", systemImage: "lock.shield")
                 }
         }
-        .frame(width: 450, height: 320)
+        .frame(width: 450, height: 420)
     }
 
     private var generalTab: some View {

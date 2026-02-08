@@ -171,6 +171,9 @@ struct MenuBarView: View {
             case .notDownloaded:
                 return "Model not downloaded"
             case .downloading(let progress):
+                if progress >= 1.0 {
+                    return "Loading model..."
+                }
                 return "Downloading \(Int(progress * 100))%"
             case .ready:
                 return "Ready — \(appState.selectedModel.shortName)"
@@ -188,7 +191,8 @@ struct MenuBarView: View {
         } else {
             switch appState.modelStatus {
             case .ready: return .green
-            case .downloading: return .yellow
+            case .downloading(let progress):
+                return progress >= 1.0 ? .green : .yellow
             default: return .gray
             }
         }

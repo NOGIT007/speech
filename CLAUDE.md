@@ -16,7 +16,7 @@ Sources/
 └── UI/                      # SwiftUI views
 ```
 
-**Dependencies:** SwiftWhisper, HotKey
+**Dependencies:** WhisperKit, HotKey
 
 ## Commands
 
@@ -32,9 +32,9 @@ cp -R .build/Speech.app /Applications/
 
 ## Critical Rules
 
-- Target: macOS 13+ (use `#available` for newer APIs)
+- Target: macOS 14+ (WhisperKit requirement)
 - Menu bar app: `LSUIElement = true` (no dock icon)
-- Models stored in `~/Library/Application Support/Speech/Models/`
+- Models stored in WhisperKit's default cache (HuggingFace Hub cache)
 - Hotkey is hold-to-record, release-to-transcribe
 
 ## Permissions Required
@@ -44,7 +44,7 @@ cp -R .build/Speech.app /Applications/
 
 ## Releasing
 
-**Current version:** 1.3.0
+**Current version:** 2.0.0
 
 ### Release Workflow
 

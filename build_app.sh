@@ -3,7 +3,7 @@ set -e
 
 APP_NAME="Speech"
 BUNDLE_ID="com.speech.app"
-VERSION="1.3.0"
+VERSION="2.0.0"
 
 # Build the executable
 swift build -c release
@@ -54,7 +54,7 @@ cat > "$CONTENTS_DIR/Info.plist" << EOF
     <key>CFBundleIconName</key>
     <string>AppIcon</string>
     <key>LSMinimumSystemVersion</key>
-    <string>13.0</string>
+    <string>14.0</string>
     <key>LSUIElement</key>
     <true/>
     <key>NSMicrophoneUsageDescription</key>

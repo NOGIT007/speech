@@ -155,11 +155,11 @@ enum WhisperModel: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .tiny: return "Tiny (75 MB) - Fastest"
-        case .base: return "Base (142 MB) - Balanced"
-        case .small: return "Small (466 MB) - Accurate"
-        case .mediumEn: return "Medium English (1.5 GB) - High Accuracy"
-        case .largeV3Turbo: return "Large v3 Turbo (1.5 GB) - Best Quality"
+        case .tiny: return "Tiny (~40 MB) - Fastest"
+        case .base: return "Base (~80 MB) - Balanced"
+        case .small: return "Small (~250 MB) - Accurate"
+        case .mediumEn: return "Medium English (~800 MB) - High Accuracy"
+        case .largeV3Turbo: return "Large v3 Turbo (~1.1 GB) - Best Quality"
         }
     }
 
@@ -173,21 +173,13 @@ enum WhisperModel: String, CaseIterable, Identifiable {
         }
     }
 
-    var fileName: String {
-        "ggml-\(rawValue).bin"
-    }
-
-    var downloadURL: URL {
-        URL(string: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/\(fileName)")!
-    }
-
-    var fileSize: Int64 {
+    var whisperKitVariant: String {
         switch self {
-        case .tiny: return 75_000_000
-        case .base: return 142_000_000
-        case .small: return 466_000_000
-        case .mediumEn: return 1_500_000_000
-        case .largeV3Turbo: return 1_500_000_000
+        case .tiny: return "openai_whisper-tiny"
+        case .base: return "openai_whisper-base"
+        case .small: return "openai_whisper-small"
+        case .mediumEn: return "openai_whisper-medium.en"
+        case .largeV3Turbo: return "openai_whisper-large-v3-v20240930_turbo"
         }
     }
 }
