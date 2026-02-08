@@ -149,6 +149,7 @@ enum WhisperModel: String, CaseIterable, Identifiable {
     case base = "base"
     case small = "small"
     case mediumEn = "medium.en"
+    case largeV3Turbo = "large-v3-turbo"
 
     var id: String { rawValue }
 
@@ -158,6 +159,17 @@ enum WhisperModel: String, CaseIterable, Identifiable {
         case .base: return "Base (142 MB) - Balanced"
         case .small: return "Small (466 MB) - Accurate"
         case .mediumEn: return "Medium English (1.5 GB) - High Accuracy"
+        case .largeV3Turbo: return "Large v3 Turbo (1.5 GB) - Best Quality"
+        }
+    }
+
+    var shortName: String {
+        switch self {
+        case .tiny: return "Tiny"
+        case .base: return "Base"
+        case .small: return "Small"
+        case .mediumEn: return "Medium EN"
+        case .largeV3Turbo: return "Large v3 Turbo"
         }
     }
 
@@ -175,6 +187,7 @@ enum WhisperModel: String, CaseIterable, Identifiable {
         case .base: return 142_000_000
         case .small: return 466_000_000
         case .mediumEn: return 1_500_000_000
+        case .largeV3Turbo: return 1_500_000_000
         }
     }
 }

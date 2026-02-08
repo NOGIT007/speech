@@ -173,7 +173,7 @@ struct MenuBarView: View {
             case .downloading(let progress):
                 return "Downloading \(Int(progress * 100))%"
             case .ready:
-                return "Ready"
+                return "Ready — \(appState.selectedModel.shortName)"
             case .error:
                 return "Error"
             }
