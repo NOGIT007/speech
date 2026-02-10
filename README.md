@@ -28,6 +28,12 @@ A lightweight macOS menu bar app for speech-to-text using local Whisper models. 
 2. Unzip and drag `Speech.app` to `/Applications`
 3. Open `Speech.app` from Applications
 
+> **macOS Gatekeeper warning:** Since the app is not notarized with Apple, macOS may show "Speech Not Opened" or "cannot be verified". To bypass this:
+> 1. **Right-click** (or Control-click) `Speech.app` → click **Open** → click **Open** again
+> 2. Or go to **System Settings → Privacy & Security**, scroll down, and click **Open Anyway**
+>
+> This only needs to be done once.
+
 ### Build from Source
 
 ```bash
