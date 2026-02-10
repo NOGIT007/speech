@@ -32,6 +32,15 @@ class AppState: ObservableObject {
 
     private init() {
         self.hotkeyConfig = HotkeyConfig.load()
+        migrateModelSelection()
+    }
+
+    /// Migrate users who had "medium.en" selected to the multilingual "medium" model
+    private func migrateModelSelection() {
+        if let stored = UserDefaults.standard.string(forKey: "selectedModel"), stored == "medium.en" {
+            UserDefaults.standard.set(WhisperModel.medium.rawValue, forKey: "selectedModel")
+            selectedModel = .medium
+        }
     }
 
     func showPermissionAlert(for permission: PermissionsManager.PermissionType) {
@@ -148,8 +157,9 @@ enum WhisperModel: String, CaseIterable, Identifiable {
     case tiny = "tiny"
     case base = "base"
     case small = "small"
-    case mediumEn = "medium.en"
+    case medium = "medium"
     case largeV3Turbo = "large-v3-turbo"
+    case largeV3 = "large-v3"
 
     var id: String { rawValue }
 
@@ -158,8 +168,9 @@ enum WhisperModel: String, CaseIterable, Identifiable {
         case .tiny: return "Tiny (~40 MB) - Fastest"
         case .base: return "Base (~80 MB) - Balanced"
         case .small: return "Small (~250 MB) - Accurate"
-        case .mediumEn: return "Medium English (~800 MB) - High Accuracy"
-        case .largeV3Turbo: return "Large v3 Turbo (~1.1 GB) - Best Quality"
+        case .medium: return "Medium (~800 MB) - High Accuracy"
+        case .largeV3Turbo: return "Large v3 Turbo (~1.1 GB) - Fast & Accurate ⭐"
+        case .largeV3: return "Large v3 (~1.5 GB) - Best Accuracy"
         }
     }
 
@@ -168,8 +179,9 @@ enum WhisperModel: String, CaseIterable, Identifiable {
         case .tiny: return "Tiny"
         case .base: return "Base"
         case .small: return "Small"
-        case .mediumEn: return "Medium EN"
+        case .medium: return "Medium"
         case .largeV3Turbo: return "Large v3 Turbo"
+        case .largeV3: return "Large v3"
         }
     }
 
@@ -178,8 +190,9 @@ enum WhisperModel: String, CaseIterable, Identifiable {
         case .tiny: return "openai_whisper-tiny"
         case .base: return "openai_whisper-base"
         case .small: return "openai_whisper-small"
-        case .mediumEn: return "openai_whisper-medium.en"
+        case .medium: return "openai_whisper-medium"
         case .largeV3Turbo: return "openai_whisper-large-v3-v20240930_turbo"
+        case .largeV3: return "openai_whisper-large-v3"
         }
     }
 }
@@ -332,6 +345,10 @@ enum TranscriptionLanguage: String, CaseIterable, Identifiable {
     case japanese = "ja"
     case chinese = "zh"
     case korean = "ko"
+    case danish = "da"
+    case norwegian = "no"
+    case swedish = "sv"
+    case finnish = "fi"
 
     var id: String { rawValue }
 
@@ -350,6 +367,10 @@ enum TranscriptionLanguage: String, CaseIterable, Identifiable {
         case .japanese: return "Japanese"
         case .chinese: return "Chinese"
         case .korean: return "Korean"
+        case .danish: return "Danish"
+        case .norwegian: return "Norwegian"
+        case .swedish: return "Swedish"
+        case .finnish: return "Finnish"
         }
     }
 }

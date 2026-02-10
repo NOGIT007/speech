@@ -73,6 +73,10 @@ struct SettingsView: View {
                 .pickerStyle(.radioGroup)
 
                 modelStatusView
+
+                Text("⭐ Recommended for English. For other languages, Large v3 is best.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
 
             Section {
