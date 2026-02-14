@@ -40,11 +40,12 @@ cp -R .build/Speech.app /Applications/
 ## Permissions Required
 
 - Microphone (audio recording)
-- Accessibility (text injection)
+- Accessibility (text injection, auto-paste)
+- Input Monitoring (keyboard simulation for auto-paste)
 
 ## Releasing
 
-**Current version:** 2.1.1
+**Current version:** 2.2.0
 
 ### Release Workflow
 

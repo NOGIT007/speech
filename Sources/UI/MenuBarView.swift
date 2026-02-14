@@ -28,18 +28,10 @@ struct MenuBarView: View {
             }
 
             // Actions
-            if #available(macOS 14.0, *) {
-                SettingsLink {
-                    Text("Settings...")
-                }
-                .keyboardShortcut(",", modifiers: .command)
-            } else {
-                Button("Settings...") {
-                    NSApp.activate(ignoringOtherApps: true)
-                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-                }
-                .keyboardShortcut(",", modifiers: .command)
+            Button("Settings...") {
+                openSettings()
             }
+            .keyboardShortcut(",", modifiers: .command)
 
             Divider()
                 .padding(.vertical, 4)
@@ -208,6 +200,10 @@ struct MenuBarView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             NSApplication.shared.terminate(nil)
         }
+    }
+
+    private func openSettings() {
+        SettingsWindowController.shared.show()
     }
 
     // MARK: - History Section

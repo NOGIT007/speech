@@ -8,7 +8,7 @@ A lightweight macOS menu bar app for speech-to-text using local Whisper models. 
 
 ## Features
 
-- **Hold-to-record**: Hold the hotkey to record, release to transcribe
+- **Hold-to-record**: Hold the hotkey to record, release to transcribe and auto-paste
 - **Local processing**: Uses OpenAI's Whisper model running entirely on your Mac
 - **Privacy-first**: No data leaves your device
 - **Multiple models**: Choose between Tiny (fast), Base (balanced), or Small (accurate)
@@ -29,6 +29,7 @@ A lightweight macOS menu bar app for speech-to-text using local Whisper models. 
 3. Open `Speech.app` from Applications
 
 > **macOS Gatekeeper warning:** Since the app is not notarized with Apple, macOS may show "Speech Not Opened" or "cannot be verified". To bypass this:
+>
 > 1. **Right-click** (or Control-click) `Speech.app` → click **Open** → click **Open** again
 > 2. Or go to **System Settings → Privacy & Security**, scroll down, and click **Open Anyway**
 >
@@ -53,7 +54,7 @@ open /Applications/Speech.app
 
 ## Setup
 
-On first launch, Speech will request the following permissions:
+On first launch, Speech will request the following permissions. You can check their status in **Settings → Permissions**.
 
 ### 1. Microphone Access
 
@@ -61,11 +62,17 @@ Required to record your voice. Click **Allow** when prompted.
 
 ### 2. Accessibility Access
 
-Required for the global hotkey to work.
+Required for auto-paste and the global hotkey.
 
-Go to **System Settings → Privacy & Security → Accessibility** and enable **Speech.app**.
+Go to **System Settings → Privacy & Security → Accessibility** and add **Speech.app**, or click **Grant** in Settings → Permissions.
 
-### 3. Download a Model
+### 3. Input Monitoring
+
+Required for keyboard simulation (auto-paste).
+
+Go to **System Settings → Privacy & Security → Input Monitoring** and add **Speech.app**, or click **Grant** in Settings → Permissions.
+
+### 4. Download a Model
 
 Click the Speech menu bar icon and select a model to download:
 
@@ -79,12 +86,9 @@ Click the Speech menu bar icon and select a model to download:
 2. **Hold** `⌥Space` (Option + Space) to start recording
 3. **Wait ~1 second** for the recording overlay to appear, then speak clearly
 4. **Release** the hotkey to transcribe
-5. Wait for the overlay to show **"Ready!"** with a green checkmark
-6. Press `⌘V` to paste the transcribed text
+5. The text is **automatically pasted** into the active app
 
-> **Tip:** The overlay shows three states: **Recording** → **Processing** → **Ready**. Wait for "Ready" before pasting to ensure the new transcription is in your clipboard.
-
-The transcribed text is automatically copied to your clipboard and a notification shows a preview.
+> **Tip:** The overlay shows three states: **Recording** → **Processing** → **Pasted!**. Auto-paste is on by default. You can disable it in **Settings → After Transcription** to use manual `⌘V` instead.
 
 ### Changing the Hotkey
 
@@ -103,6 +107,20 @@ The transcribed text is automatically copied to your clipboard and a notificatio
 
 - Try using a smaller model (Tiny or Base)
 - Ensure no other heavy processes are running
+
+### Auto-paste not working
+
+Auto-paste requires both **Accessibility** and **Input Monitoring** permissions. If it's not working:
+
+1. Open **Settings → Permissions** and check all three have green checkmarks
+2. If Accessibility or Input Monitoring show "Grant", click the button and add Speech.app in System Settings
+3. If permissions were previously granted but stopped working (e.g. after an update), reset them in Terminal:
+   ```bash
+   tccutil reset Accessibility com.speech.app
+   tccutil reset ListenEvent com.speech.app
+   ```
+   Then re-grant both permissions in System Settings → Privacy & Security.
+4. You can disable auto-paste in **Settings → General → After Transcription** to use manual `⌘V` instead
 
 ### Poor transcription quality
 

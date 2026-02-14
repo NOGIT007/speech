@@ -14,10 +14,5 @@ struct SpeechApp: App {
             MenuBarIcon(isRecording: appState.isRecording, isTranscribing: appState.isTranscribing)
         }
         .menuBarExtraStyle(.window)
-
-        Settings {
-            SettingsView()
-                .environmentObject(appState)
-        }
     }
 }

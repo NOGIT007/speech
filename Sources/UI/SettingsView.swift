@@ -4,6 +4,7 @@ import ServiceManagement
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @AppStorage("launchAtLogin") private var launchAtLogin = false
+    @AppStorage("autoPaste") private var autoPaste = true
     @State private var micPermission = false
     @State private var accessibilityPermission = false
     @State private var inputMonitoringPermission = false
@@ -53,7 +54,10 @@ struct SettingsView: View {
             }
 
             Section("After Transcription") {
-                Text("Text is copied to clipboard. Press ⌘V to paste.")
+                Toggle("Auto-paste text", isOn: $autoPaste)
+                Text(autoPaste
+                    ? "Text will be automatically pasted into the active app"
+                    : "Text is copied to clipboard. Press ⌘V to paste.")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

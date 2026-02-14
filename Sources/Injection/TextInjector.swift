@@ -17,6 +17,8 @@ class TextInjector {
     }
 
     func injectText(_ text: String) async {
+        let autoPaste = UserDefaults.standard.bool(forKey: "autoPaste")
+
         // Set clipboard BEFORE focus restore
         copyToClipboard(text)
 
@@ -44,11 +46,58 @@ class TextInjector {
         // Final buffer
         try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
 
-        // Show notification - user presses ⌘V to paste
-        showPasteNotification(preview: String(text.prefix(50)))
+        if autoPaste {
+            // Wait for hotkey modifiers to be released
+            await waitForModifierRelease()
+            // Simulate ⌘V via CGEvent
+            if !simulatePaste() {
+                showPasteNotification(preview: String(text.prefix(50)))
+            }
+        } else {
+            // Manual mode: show notification for user to press ⌘V
+            showPasteNotification(preview: String(text.prefix(50)))
+        }
 
         previousApp = nil
     }
+
+    // MARK: - Auto-Paste
+
+    /// Wait until all physical modifier keys are released (critical for hold-to-record hotkeys)
+    private func waitForModifierRelease() async {
+        let relevantModifiers: NSEvent.ModifierFlags = [.shift, .control, .option, .command]
+        let timeout: UInt64 = 1_000_000_000 // 1 second
+        let start = DispatchTime.now().uptimeNanoseconds
+
+        while !NSEvent.modifierFlags.intersection(relevantModifiers).isEmpty {
+            let elapsed = DispatchTime.now().uptimeNanoseconds - start
+            if elapsed >= timeout { break }
+            try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        }
+
+        // Small buffer after modifiers released
+        try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+    }
+
+    /// Simulate ⌘V using CGEvent — works with Input Monitoring permission
+    private func simulatePaste() -> Bool {
+        let vKeyCode: CGKeyCode = 0x09 // Virtual key code for 'V'
+
+        guard let keyDown = CGEvent(keyboardEventSource: nil, virtualKey: vKeyCode, keyDown: true),
+              let keyUp = CGEvent(keyboardEventSource: nil, virtualKey: vKeyCode, keyDown: false) else {
+            return false
+        }
+
+        keyDown.flags = .maskCommand
+        keyUp.flags = .maskCommand
+
+        keyDown.post(tap: .cghidEventTap)
+        keyUp.post(tap: .cghidEventTap)
+
+        return true
+    }
+
+    // MARK: - Clipboard & Notification
 
     private func copyToClipboard(_ text: String) {
         let pasteboard = NSPasteboard.general

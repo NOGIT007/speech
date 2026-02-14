@@ -6,6 +6,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var permissionsManager: PermissionsManager?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Register defaults (autoPaste on by default)
+        UserDefaults.standard.register(defaults: ["autoPaste": true])
+
         // Initialize permissions manager
         permissionsManager = PermissionsManager()
 
@@ -95,8 +98,9 @@ class PermissionsManager {
     }
 
     func openAccessibilitySettings() {
-        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
-        NSWorkspace.shared.open(url)
+        // Trigger system prompt dialog for Accessibility
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
+        AXIsProcessTrustedWithOptions(options)
     }
 
     func openMicrophoneSettings() {

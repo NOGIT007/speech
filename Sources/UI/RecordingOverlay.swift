@@ -44,6 +44,9 @@ class RecordingOverlayWindow: NSWindow {
 
 struct RecordingOverlayView: View {
     let mode: OverlayMode
+    private var autoPaste: Bool {
+        UserDefaults.standard.bool(forKey: "autoPaste")
+    }
 
     var body: some View {
         VStack(spacing: 14) {
@@ -70,7 +73,7 @@ struct RecordingOverlayView: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.white.opacity(0.9))
 
-                Text("Will paste when ready")
+                Text(autoPaste ? "Will auto-paste when ready" : "Will copy to clipboard")
                     .font(.system(size: 12, weight: .regular))
                     .foregroundColor(.white.opacity(0.6))
 
@@ -84,7 +87,7 @@ struct RecordingOverlayView: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.white.opacity(0.9))
 
-                Text("Press ⌘V to paste")
+                Text(autoPaste ? "Pasted!" : "Press ⌘V to paste")
                     .font(.system(size: 12, weight: .regular))
                     .foregroundColor(.white.opacity(0.6))
             }
@@ -176,9 +179,10 @@ class RecordingOverlayController {
 
     func showReadyThenHide() {
         window?.setMode(.ready)
-        // Hide after 1 second
+        let autoPaste = UserDefaults.standard.bool(forKey: "autoPaste")
+        let delay: UInt64 = autoPaste ? 500_000_000 : 1_000_000_000
         Task {
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            try? await Task.sleep(nanoseconds: delay)
             await MainActor.run {
                 self.hide()
             }
