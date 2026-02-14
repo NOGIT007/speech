@@ -178,6 +178,16 @@ struct SettingsView: View {
                 Text("Grant all permissions for Speech to work correctly.")
                     .font(.caption)
                     .foregroundColor(.secondary)
+
+                if !accessibilityPermission || !inputMonitoringPermission {
+                    Button("Reset & Re-grant Permissions") {
+                        resetPermissions()
+                    }
+                    .foregroundColor(.red)
+                    Text("Use this if permissions appear stuck. Clears stale entries and restarts the app so you can re-grant them.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
         }
         .formStyle(.grouped)
@@ -233,6 +243,31 @@ struct SettingsView: View {
 
     private func openInputMonitoringSettings() {
         PermissionsManager().openInputMonitoringSettings()
+    }
+
+    private func resetPermissions() {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
+        process.arguments = ["reset", "Accessibility", "com.speech.app"]
+        try? process.run()
+        process.waitUntilExit()
+
+        let process2 = Process()
+        process2.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
+        process2.arguments = ["reset", "ListenEvent", "com.speech.app"]
+        try? process2.run()
+        process2.waitUntilExit()
+
+        // Relaunch the app
+        let appURL = Bundle.main.bundleURL
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        task.arguments = [appURL.path]
+        try? task.run()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            NSApp.terminate(nil)
+        }
     }
 
     private func setLaunchAtLogin(_ enabled: Bool) {
