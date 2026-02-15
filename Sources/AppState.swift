@@ -22,6 +22,29 @@ class AppState: ObservableObject {
             NotificationCenter.default.post(name: .hotkeyConfigChanged, object: nil)
         }
     }
+    @Published var profiles: [ModelProfile] = [] {
+        didSet { saveProfiles() }
+    }
+    @Published var activeProfileIndex: Int = 0 {
+        didSet { UserDefaults.standard.set(activeProfileIndex, forKey: "activeProfileIndex") }
+    }
+    @Published var switchHotkeyConfig: HotkeyConfig {
+        didSet {
+            switchHotkeyConfig.save(prefix: "switch")
+            NotificationCenter.default.post(name: .switchHotkeyConfigChanged, object: nil)
+        }
+    }
+    @AppStorage("switchHotkeyEnabled") var switchHotkeyEnabled: Bool = false {
+        didSet {
+            NotificationCenter.default.post(name: .switchHotkeyConfigChanged, object: nil)
+        }
+    }
+
+    var activeProfile: ModelProfile? {
+        guard !profiles.isEmpty else { return nil }
+        let index = min(activeProfileIndex, profiles.count - 1)
+        return profiles[index]
+    }
 
     enum ModelStatus: Equatable {
         case notDownloaded
@@ -32,7 +55,11 @@ class AppState: ObservableObject {
 
     private init() {
         self.hotkeyConfig = HotkeyConfig.load()
+        self.switchHotkeyConfig = HotkeyConfig.load(prefix: "switch")
+        self.profiles = AppState.loadProfiles()
+        self.activeProfileIndex = UserDefaults.standard.integer(forKey: "activeProfileIndex")
         migrateModelSelection()
+        migrateProfiles()
     }
 
     /// Migrate users who had "medium.en" selected to the multilingual "medium" model
@@ -153,7 +180,7 @@ class AppState: ObservableObject {
     }
 }
 
-enum WhisperModel: String, CaseIterable, Identifiable {
+enum WhisperModel: String, CaseIterable, Identifiable, Codable {
     case tiny = "tiny"
     case base = "base"
     case small = "small"
@@ -274,14 +301,16 @@ struct HotkeyConfig: Equatable {
         return String(utf16CodeUnits: chars, count: length)
     }
 
-    func save() {
-        UserDefaults.standard.set(keyCode, forKey: "hotkeyKeyCode")
-        UserDefaults.standard.set(modifiers.rawValue, forKey: "hotkeyModifiers")
+    func save(prefix: String = "") {
+        UserDefaults.standard.set(keyCode, forKey: "\(prefix)hotkeyKeyCode")
+        UserDefaults.standard.set(modifiers.rawValue, forKey: "\(prefix)hotkeyModifiers")
     }
 
-    static func load() -> HotkeyConfig {
-        let keyCode = UserDefaults.standard.object(forKey: "hotkeyKeyCode") as? UInt32 ?? UInt32(kVK_Space)
-        let modifiersRaw = UserDefaults.standard.object(forKey: "hotkeyModifiers") as? UInt ?? NSEvent.ModifierFlags.option.rawValue
+    static func load(prefix: String = "") -> HotkeyConfig {
+        let defaultKeyCode = prefix.isEmpty ? UInt32(kVK_Space) : UInt32(kVK_Space)
+        let defaultModifiers = prefix.isEmpty ? NSEvent.ModifierFlags.option.rawValue : NSEvent.ModifierFlags([.shift, .option]).rawValue
+        let keyCode = UserDefaults.standard.object(forKey: "\(prefix)hotkeyKeyCode") as? UInt32 ?? defaultKeyCode
+        let modifiersRaw = UserDefaults.standard.object(forKey: "\(prefix)hotkeyModifiers") as? UInt ?? defaultModifiers
         return HotkeyConfig(keyCode: keyCode, modifiers: NSEvent.ModifierFlags(rawValue: modifiersRaw))
     }
 
@@ -296,6 +325,7 @@ struct HotkeyConfig: Equatable {
 
 extension Notification.Name {
     static let hotkeyConfigChanged = Notification.Name("hotkeyConfigChanged")
+    static let switchHotkeyConfigChanged = Notification.Name("switchHotkeyConfigChanged")
 }
 
 // MARK: - Transcription History
@@ -329,9 +359,75 @@ struct TranscriptionItem: Identifiable {
     }
 }
 
+// MARK: - Model Profiles
+
+extension AppState {
+    private static func loadProfiles() -> [ModelProfile] {
+        guard let data = UserDefaults.standard.data(forKey: "modelProfiles"),
+              let profiles = try? JSONDecoder().decode([ModelProfile].self, from: data) else {
+            return []
+        }
+        return profiles
+    }
+
+    private func saveProfiles() {
+        if let data = try? JSONEncoder().encode(profiles) {
+            UserDefaults.standard.set(data, forKey: "modelProfiles")
+        }
+    }
+
+    /// Create a default profile from existing settings on first launch
+    fileprivate func migrateProfiles() {
+        guard profiles.isEmpty else { return }
+        let profile = ModelProfile(
+            name: selectedLanguage.displayName,
+            model: selectedModel,
+            language: selectedLanguage
+        )
+        profiles = [profile]
+    }
+
+    func switchToNextProfile() {
+        guard profiles.count >= 2 else { return }
+        activeProfileIndex = (activeProfileIndex + 1) % profiles.count
+        applyActiveProfile()
+    }
+
+    func applyActiveProfile() {
+        guard let profile = activeProfile else { return }
+        let modelChanged = selectedModel != profile.model
+        selectedLanguage = profile.language
+        selectedModel = profile.model
+
+        SwitchOverlayController.shared.show(profileName: profile.name, model: profile.model, language: profile.language)
+
+        if modelChanged && loadedModel != profile.model {
+            Task {
+                await WhisperService.shared.initialize()
+            }
+        }
+    }
+}
+
+// MARK: - Model Profile
+
+struct ModelProfile: Codable, Identifiable, Equatable {
+    let id: UUID
+    var name: String
+    var model: WhisperModel
+    var language: TranscriptionLanguage
+
+    init(id: UUID = UUID(), name: String, model: WhisperModel, language: TranscriptionLanguage) {
+        self.id = id
+        self.name = name
+        self.model = model
+        self.language = language
+    }
+}
+
 // MARK: - Transcription Language
 
-enum TranscriptionLanguage: String, CaseIterable, Identifiable {
+enum TranscriptionLanguage: String, CaseIterable, Identifiable, Codable {
     case auto = "auto"
     case english = "en"
     case spanish = "es"

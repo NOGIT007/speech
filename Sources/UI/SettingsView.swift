@@ -26,7 +26,7 @@ struct SettingsView: View {
                     Label("Permissions", systemImage: "lock.shield")
                 }
         }
-        .frame(width: 450, height: 420)
+        .frame(width: 450, height: 560)
     }
 
     private var generalTab: some View {
@@ -36,34 +36,147 @@ struct SettingsView: View {
                     .onChange(of: launchAtLogin) { newValue in
                         setLaunchAtLogin(newValue)
                     }
+                Toggle("Auto-paste text", isOn: $autoPaste)
             }
 
-            Section("Hotkey") {
+            Section("Dictation Hotkey") {
                 HotkeyRecorderView(config: $appState.hotkeyConfig)
-                Text("Hold the shortcut to record, release to transcribe")
+                Text("Hold to record, release to transcribe")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
 
-            Section("Language") {
-                Picker("Transcription language", selection: $appState.selectedLanguage) {
-                    ForEach(TranscriptionLanguage.allCases) { lang in
-                        Text(lang.displayName).tag(lang)
+            Section {
+                ForEach(Array(appState.profiles.enumerated()), id: \.element.id) { index, profile in
+                    profileCard(index: index)
+                }
+
+                Button(action: {
+                    let profile = ModelProfile(
+                        name: "New",
+                        model: appState.selectedModel,
+                        language: .english
+                    )
+                    appState.profiles.append(profile)
+                }) {
+                    Label("Add Profile", systemImage: "plus")
+                }
+                .buttonStyle(.borderless)
+            } header: {
+                Text("Profiles")
+            } footer: {
+                Text("Preset model + language combinations")
+            }
+
+            if appState.profiles.count >= 2 {
+                Section("Profile Switching") {
+                    Toggle("Enable quick switch", isOn: $appState.switchHotkeyEnabled)
+
+                    if appState.switchHotkeyEnabled {
+                        HotkeyRecorderView(
+                            config: $appState.switchHotkeyConfig,
+                            label: "Switch shortcut"
+                        )
+
+                        if appState.switchHotkeyConfig == appState.hotkeyConfig {
+                            Label("Conflicts with dictation hotkey", systemImage: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                                .font(.caption)
+                        }
                     }
+
+                    Text("Tap to cycle between profiles")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
             }
 
-            Section("After Transcription") {
-                Toggle("Auto-paste text", isOn: $autoPaste)
-                Text(autoPaste
-                    ? "Text will be automatically pasted into the active app"
-                    : "Text is copied to clipboard. Press ⌘V to paste.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
         }
         .formStyle(.grouped)
         .padding()
+    }
+
+    private var sortedLanguages: [TranscriptionLanguage] {
+        let auto = TranscriptionLanguage.allCases.filter { $0 == .auto }
+        let rest = TranscriptionLanguage.allCases.filter { $0 != .auto }
+            .sorted { $0.displayName < $1.displayName }
+        return auto + rest
+    }
+
+    private func profileCard(index: Int) -> some View {
+        let safeNameBinding = Binding<String>(
+            get: { index < appState.profiles.count ? appState.profiles[index].name : "" },
+            set: { if index < appState.profiles.count { appState.profiles[index].name = $0 } }
+        )
+        let safeModelBinding = Binding<WhisperModel>(
+            get: { index < appState.profiles.count ? appState.profiles[index].model : .largeV3Turbo },
+            set: { if index < appState.profiles.count { appState.profiles[index].model = $0 } }
+        )
+        let safeLanguageBinding = Binding<TranscriptionLanguage>(
+            get: { index < appState.profiles.count ? appState.profiles[index].language : .english },
+            set: { if index < appState.profiles.count { appState.profiles[index].language = $0 } }
+        )
+
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Button(action: {
+                    appState.activeProfileIndex = index
+                    appState.applyActiveProfile()
+                }) {
+                    Image(systemName: index == appState.activeProfileIndex
+                        ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(index == appState.activeProfileIndex ? .green : .secondary)
+                        .font(.system(size: 14))
+                }
+                .buttonStyle(.borderless)
+
+                SelectAllTextField(text: safeNameBinding, placeholder: "Name")
+                    .frame(maxWidth: 120)
+
+                Spacer()
+
+                if appState.profiles.count > 1 {
+                    Button(action: {
+                        let wasActive = appState.activeProfileIndex
+                        if wasActive == index {
+                            appState.activeProfileIndex = max(0, index - 1)
+                        } else if wasActive > index {
+                            appState.activeProfileIndex = wasActive - 1
+                        }
+                        appState.profiles.remove(at: index)
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                            .font(.system(size: 12))
+                    }
+                    .buttonStyle(.borderless)
+                }
+            }
+
+            HStack {
+                Text("Model")
+                Spacer()
+                SearchablePicker(
+                    items: WhisperModel.allCases.map { ($0.shortName, $0) },
+                    selection: safeModelBinding
+                )
+                .frame(width: 160)
+            }
+
+            HStack {
+                Text("Language")
+                Spacer()
+                SearchablePicker(
+                    items: sortedLanguages.map { ($0.displayName, $0) },
+                    selection: safeLanguageBinding
+                )
+                .frame(width: 160)
+            }
+
+            if index < appState.profiles.count - 1 {
+                Divider()
+            }
+        }
     }
 
     private var modelTab: some View {
@@ -286,3 +399,135 @@ struct SettingsView: View {
 }
 
 import AVFoundation
+
+struct SelectAllTextField: NSViewRepresentable {
+    @Binding var text: String
+    var placeholder: String
+
+    func makeNSView(context: Context) -> NSTextField {
+        let field = NSTextField()
+        field.placeholderString = placeholder
+        field.stringValue = text
+        field.bezelStyle = .roundedBezel
+        field.delegate = context.coordinator
+        return field
+    }
+
+    func updateNSView(_ field: NSTextField, context: Context) {
+        if field.stringValue != text {
+            field.stringValue = text
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    class Coordinator: NSObject, NSTextFieldDelegate {
+        var parent: SelectAllTextField
+        init(_ parent: SelectAllTextField) { self.parent = parent }
+
+        func controlTextDidChange(_ obj: Notification) {
+            guard let field = obj.object as? NSTextField else { return }
+            parent.text = field.stringValue
+        }
+
+        func controlTextDidBeginEditing(_ obj: Notification) {
+            guard let field = obj.object as? NSTextField,
+                  let editor = field.currentEditor() else { return }
+            editor.selectAll(nil)
+        }
+    }
+}
+
+struct SearchablePicker<T: Hashable>: View {
+    let items: [(title: String, value: T)]
+    @Binding var selection: T
+    @State private var isOpen = false
+    @State private var search = ""
+
+    private var selectedTitle: String {
+        items.first(where: { $0.value == selection })?.title ?? ""
+    }
+
+    private var filteredItems: [(title: String, value: T)] {
+        if search.isEmpty { return items }
+        return items.filter { $0.title.localizedCaseInsensitiveContains(search) }
+    }
+
+    var body: some View {
+        Button(action: { isOpen.toggle() }) {
+            HStack(spacing: 4) {
+                Text(selectedTitle)
+                    .lineLimit(1)
+                Spacer(minLength: 2)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(
+                RoundedRectangle(cornerRadius: 5)
+                    .fill(Color(nsColor: .controlBackgroundColor))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 5)
+                    .stroke(Color(nsColor: .separatorColor), lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $isOpen, arrowEdge: .bottom) {
+            VStack(spacing: 0) {
+                TextField("Filter…", text: $search)
+                    .textFieldStyle(.roundedBorder)
+                    .padding(8)
+
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 0) {
+                            ForEach(Array(filteredItems.enumerated()), id: \.element.value) { idx, item in
+                                Button(action: {
+                                    selection = item.value
+                                    search = ""
+                                    isOpen = false
+                                }) {
+                                    HStack {
+                                        if item.value == selection {
+                                            Image(systemName: "checkmark")
+                                                .font(.system(size: 10, weight: .bold))
+                                                .frame(width: 14)
+                                        } else {
+                                            Spacer().frame(width: 14)
+                                        }
+                                        Text(item.title)
+                                            .lineLimit(1)
+                                        Spacer()
+                                    }
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 5)
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                .background(
+                                    item.value == selection
+                                        ? Color.accentColor.opacity(0.15)
+                                        : Color.clear
+                                )
+                                .id(item.value)
+                            }
+                        }
+                    }
+                    .frame(maxHeight: 200)
+                    .onAppear {
+                        proxy.scrollTo(selection, anchor: .center)
+                    }
+                }
+            }
+            .frame(width: 180)
+        }
+        .onChange(of: isOpen) { open in
+            if !open { search = "" }
+        }
+    }
+}

@@ -137,6 +137,11 @@ struct MenuBarView: View {
                     Text("Hold \(appState.hotkeyConfig.displayString) to dictate")
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
+                    if appState.profiles.count >= 2, let profile = appState.activeProfile {
+                        Text("\(profile.name) · \(appState.switchHotkeyConfig.displayString) to switch")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
                 }
                 Spacer()
             }
@@ -168,6 +173,9 @@ struct MenuBarView: View {
                 }
                 return "Downloading \(Int(progress * 100))%"
             case .ready:
+                if let profile = appState.activeProfile, appState.profiles.count >= 2 {
+                    return "Ready — \(profile.name)"
+                }
                 return "Ready — \(appState.selectedModel.shortName)"
             case .error:
                 return "Error"

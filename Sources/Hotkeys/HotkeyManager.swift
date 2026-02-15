@@ -5,9 +5,11 @@ import Carbon.HIToolbox
 @MainActor
 class HotkeyManager {
     private var hotKey: HotKey?
+    private var switchHotKey: HotKey?
     private var isKeyDown = false
     private var eventMonitor: Any?
     private var configObserver: NSObjectProtocol?
+    private var switchConfigObserver: NSObjectProtocol?
     private var currentConfig: HotkeyConfig
 
     init() {
@@ -16,8 +18,9 @@ class HotkeyManager {
 
     func registerHotkey() {
         setupHotkey(with: currentConfig)
+        setupSwitchHotkey()
 
-        // Listen for config changes
+        // Listen for record hotkey config changes
         configObserver = NotificationCenter.default.addObserver(
             forName: .hotkeyConfigChanged,
             object: nil,
@@ -25,6 +28,17 @@ class HotkeyManager {
         ) { [weak self] _ in
             Task { @MainActor in
                 self?.handleConfigChange()
+            }
+        }
+
+        // Listen for switch hotkey config changes
+        switchConfigObserver = NotificationCenter.default.addObserver(
+            forName: .switchHotkeyConfigChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.setupSwitchHotkey()
             }
         }
     }
@@ -35,6 +49,24 @@ class HotkeyManager {
         currentConfig = newConfig
         unregisterHotkey()
         setupHotkey(with: newConfig)
+        setupSwitchHotkey()
+    }
+
+    private func setupSwitchHotkey() {
+        switchHotKey = nil
+
+        let appState = AppState.shared
+        guard appState.switchHotkeyEnabled, appState.profiles.count >= 2 else { return }
+
+        let config = appState.switchHotkeyConfig
+        guard let key = config.hotKeyKey else { return }
+
+        switchHotKey = HotKey(key: key, modifiers: config.hotKeyModifiers)
+        switchHotKey?.keyDownHandler = {
+            Task { @MainActor in
+                AppState.shared.switchToNextProfile()
+            }
+        }
     }
 
     private func setupHotkey(with config: HotkeyConfig) {
@@ -94,6 +126,7 @@ class HotkeyManager {
 
     func unregisterHotkey() {
         hotKey = nil
+        switchHotKey = nil
 
         if let monitor = eventMonitor {
             NSEvent.removeMonitor(monitor)
@@ -103,6 +136,9 @@ class HotkeyManager {
 
     deinit {
         if let observer = configObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        if let observer = switchConfigObserver {
             NotificationCenter.default.removeObserver(observer)
         }
     }

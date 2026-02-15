@@ -3,12 +3,13 @@ import Carbon.HIToolbox
 
 struct HotkeyRecorderView: View {
     @Binding var config: HotkeyConfig
+    var label: String = "Dictation shortcut"
     @State private var isRecording = false
     @State private var eventMonitor: Any?
 
     var body: some View {
         HStack {
-            Text("Dictation shortcut")
+            Text(label)
             Spacer()
 
             Button(action: { startRecording() }) {
