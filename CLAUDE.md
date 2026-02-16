@@ -45,7 +45,7 @@ cp -R .build/Speech.app /Applications/
 
 ## Releasing
 
-**Current version:** 2.3.0
+**Current version:** 2.3.1
 
 ### Release Workflow
 
@@ -60,6 +60,8 @@ cp -R .build/Speech.app /Applications/
    cd .build && zip -r Speech.app.zip Speech.app
    gh release create vX.Y.Z Speech.app.zip --title "vX.Y.Z - Title" --notes "Release notes"
    ```
+
+**Release notes format:** Every release should include the app icon image centered at the top and a codename (e.g. "Quiet Mic").
 
 ❗ **Important**: Users with the app installed check for updates via GitHub releases. Without a release, they won't see the update.
 

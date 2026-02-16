@@ -39,6 +39,7 @@ class AppState: ObservableObject {
             NotificationCenter.default.post(name: .switchHotkeyConfigChanged, object: nil)
         }
     }
+    private var recordingStartTask: Task<Void, Never>?
 
     var activeProfile: ModelProfile? {
         guard !profiles.isEmpty else { return nil }
@@ -104,32 +105,42 @@ class AppState: ObservableObject {
     }
 
     func startRecording() {
-        guard !isRecording else { return }
+        guard !isRecording, recordingStartTask == nil else { return }
 
-        // Save which app has focus BEFORE we start (so we can paste back to it)
+        // Save which app has focus BEFORE any async gap (so we can paste back to it)
         TextInjector.shared.saveFocusedApp()
-
-        isRecording = true
         errorMessage = nil
 
-        // Show visual overlay
-        RecordingOverlayController.shared.show()
-
-        Task {
+        recordingStartTask = Task {
             do {
                 try await AudioRecorder.shared.startRecording()
+                // Only show UI after mic is actually capturing
+                self.isRecording = true
+                RecordingOverlayController.shared.show()
             } catch {
-                await MainActor.run {
-                    self.isRecording = false
-                    RecordingOverlayController.shared.hide()
-                    self.errorMessage = "Failed to start recording: \(error.localizedDescription)"
-                }
+                self.errorMessage = "Failed to start recording: \(error.localizedDescription)"
             }
+            self.recordingStartTask = nil
         }
     }
 
     func stopRecordingAndTranscribe() {
+        if let startTask = recordingStartTask {
+            // Mic still starting — wait for it, then stop
+            Task {
+                await startTask.value
+                if self.isRecording {
+                    self.performStopAndTranscribe()
+                }
+            }
+            return
+        }
+
         guard isRecording else { return }
+        performStopAndTranscribe()
+    }
+
+    private func performStopAndTranscribe() {
         isRecording = false
         isTranscribing = true
 
