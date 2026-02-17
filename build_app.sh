@@ -3,7 +3,7 @@ set -e
 
 APP_NAME="Speech"
 BUNDLE_ID="com.speech.app"
-VERSION="2.3.2"
+VERSION="2.3.3"
 
 # Build the executable
 swift build -c release

@@ -5,7 +5,6 @@ struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @AppStorage("launchAtLogin") private var launchAtLogin = false
     @AppStorage("autoPaste") private var autoPaste = true
-    @AppStorage("lastRunVersion") private var lastRunVersion: String = ""
     @State private var micPermission = false
     @State private var accessibilityPermission = false
     @State private var inputMonitoringPermission = false
@@ -37,22 +36,17 @@ struct SettingsView: View {
         }
         .frame(width: 450, height: 560)
         .onAppear {
-            checkVersionAndSelectTab()
+            checkAndShowPermissionsIfNeeded()
         }
     }
 
-    private func checkVersionAndSelectTab() {
-        guard let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else {
-            return
-        }
-
-        // If version has changed, show Permissions tab first
-        if lastRunVersion != currentVersion && !lastRunVersion.isEmpty {
+    private func checkAndShowPermissionsIfNeeded() {
+        // If this is first open after upgrade, show Permissions tab
+        if appState.shouldShowPermissionsTab {
             selectedTab = .permissions
+            // Reset flag so next open shows default tab
+            appState.shouldShowPermissionsTab = false
         }
-
-        // Update stored version
-        lastRunVersion = currentVersion
     }
 
     private var generalTab: some View {

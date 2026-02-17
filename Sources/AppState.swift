@@ -39,6 +39,7 @@ class AppState: ObservableObject {
             NotificationCenter.default.post(name: .switchHotkeyConfigChanged, object: nil)
         }
     }
+    @Published var shouldShowPermissionsTab: Bool = false
     private var recordingStartTask: Task<Void, Never>?
 
     var activeProfile: ModelProfile? {
@@ -61,6 +62,24 @@ class AppState: ObservableObject {
         self.activeProfileIndex = UserDefaults.standard.integer(forKey: "activeProfileIndex")
         migrateModelSelection()
         migrateProfiles()
+        checkVersionAndSetPermissionsFlag()
+    }
+
+    /// Check if app version has changed and set flag to show Permissions tab
+    private func checkVersionAndSetPermissionsFlag() {
+        guard let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else {
+            return
+        }
+
+        let lastVersion = UserDefaults.standard.string(forKey: "lastRunVersion") ?? ""
+
+        // If version changed (and not first launch), show Permissions tab next time Settings opens
+        if !lastVersion.isEmpty && lastVersion != currentVersion {
+            shouldShowPermissionsTab = true
+        }
+
+        // Update stored version
+        UserDefaults.standard.set(currentVersion, forKey: "lastRunVersion")
     }
 
     /// Migrate users who had "medium.en" selected to the multilingual "medium" model
