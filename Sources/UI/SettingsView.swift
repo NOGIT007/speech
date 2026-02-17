@@ -5,28 +5,54 @@ struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @AppStorage("launchAtLogin") private var launchAtLogin = false
     @AppStorage("autoPaste") private var autoPaste = true
+    @AppStorage("lastRunVersion") private var lastRunVersion: String = ""
     @State private var micPermission = false
     @State private var accessibilityPermission = false
     @State private var inputMonitoringPermission = false
+    @State private var selectedTab: Tab = .general
+
+    enum Tab {
+        case general, model, permissions
+    }
 
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             generalTab
                 .tabItem {
                     Label("General", systemImage: "gear")
                 }
+                .tag(Tab.general)
 
             modelTab
                 .tabItem {
                     Label("Model", systemImage: "cpu")
                 }
+                .tag(Tab.model)
 
             permissionsTab
                 .tabItem {
                     Label("Permissions", systemImage: "lock.shield")
                 }
+                .tag(Tab.permissions)
         }
         .frame(width: 450, height: 560)
+        .onAppear {
+            checkVersionAndSelectTab()
+        }
+    }
+
+    private func checkVersionAndSelectTab() {
+        guard let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else {
+            return
+        }
+
+        // If version has changed, show Permissions tab first
+        if lastRunVersion != currentVersion && !lastRunVersion.isEmpty {
+            selectedTab = .permissions
+        }
+
+        // Update stored version
+        lastRunVersion = currentVersion
     }
 
     private var generalTab: some View {
