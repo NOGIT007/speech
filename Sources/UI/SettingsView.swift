@@ -8,45 +8,25 @@ struct SettingsView: View {
     @State private var micPermission = false
     @State private var accessibilityPermission = false
     @State private var inputMonitoringPermission = false
-    @State private var selectedTab: Tab = .general
-
-    enum Tab {
-        case general, model, permissions
-    }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
+        TabView {
             generalTab
                 .tabItem {
                     Label("General", systemImage: "gear")
                 }
-                .tag(Tab.general)
 
             modelTab
                 .tabItem {
                     Label("Model", systemImage: "cpu")
                 }
-                .tag(Tab.model)
 
             permissionsTab
                 .tabItem {
                     Label("Permissions", systemImage: "lock.shield")
                 }
-                .tag(Tab.permissions)
         }
         .frame(width: 450, height: 560)
-        .onAppear {
-            checkAndShowPermissionsIfNeeded()
-        }
-    }
-
-    private func checkAndShowPermissionsIfNeeded() {
-        // If this is first open after upgrade, show Permissions tab
-        if appState.shouldShowPermissionsTab {
-            selectedTab = .permissions
-            // Reset flag so next open shows default tab
-            appState.shouldShowPermissionsTab = false
-        }
     }
 
     private var generalTab: some View {
