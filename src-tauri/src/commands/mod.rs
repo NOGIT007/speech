@@ -1,5 +1,6 @@
 pub mod audio;
 pub mod model;
+pub mod permissions;
 pub mod settings;
 pub mod state;
 

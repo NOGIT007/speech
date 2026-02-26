@@ -93,6 +93,9 @@ pub fn run() {
             commands::settings::get_settings,
             commands::settings::update_setting,
             commands::settings::open_settings,
+            commands::permissions::check_permissions,
+            commands::permissions::open_permission_settings,
+            commands::permissions::reset_permissions,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Speech");

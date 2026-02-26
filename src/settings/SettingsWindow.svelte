@@ -1,6 +1,7 @@
 <script lang="ts">
   import GeneralTab from "./GeneralTab.svelte";
   import ModelTab from "./ModelTab.svelte";
+  import PermissionsTab from "./PermissionsTab.svelte";
 
   type Tab = "general" | "model" | "permissions";
   let activeTab: Tab = $state("general");
@@ -40,9 +41,7 @@
     {:else if activeTab === "model"}
       <ModelTab />
     {:else if activeTab === "permissions"}
-      <div class="text-white/50 text-sm">
-        Permissions settings (coming soon)
-      </div>
+      <PermissionsTab />
     {/if}
   </div>
 </div>
