@@ -1,5 +1,6 @@
 pub mod commands;
 pub mod managers;
+pub mod state;
 pub mod text_cleaner;
 pub mod tray;
 
@@ -9,7 +10,9 @@ use tauri::Manager;
 use commands::model::{ModelState, TranscriptionState};
 use managers::audio::AudioState;
 use managers::model::ModelManager;
+use managers::paste::PasteManager;
 use managers::transcription::TranscriptionManager;
+use state::{CoordinatorState, PasteState, RecordingCoordinator};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -18,6 +21,8 @@ pub fn run() {
     tauri::Builder::default()
         .manage(AudioState::new())
         .manage(TranscriptionState(Mutex::new(TranscriptionManager::new())))
+        .manage(CoordinatorState(Mutex::new(RecordingCoordinator::new())))
+        .manage(PasteState(Mutex::new(PasteManager::new())))
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
@@ -57,6 +62,12 @@ pub fn run() {
             // Set up system tray
             tray::setup_tray(app.handle())?;
 
+            // Set up hotkey listeners (record, cancel, switch)
+            // Matches AppDelegate.swift:44-48 setupHotkey()
+            if let Err(e) = state::setup_hotkey_listeners(app.handle()) {
+                tracing::error!("Failed to set up hotkey listeners: {}", e);
+            }
+
             tracing::info!("Speech v3.0.0 started");
             Ok(())
         })
@@ -68,6 +79,16 @@ pub fn run() {
             commands::model::list_models,
             commands::model::delete_model,
             commands::model::get_supported_languages,
+            commands::state::get_phase,
+            commands::state::get_history,
+            commands::state::delete_history_item,
+            commands::state::clear_history,
+            commands::state::set_language,
+            commands::state::set_remove_filler_words,
+            commands::state::set_auto_paste,
+            commands::state::cmd_start_recording,
+            commands::state::cmd_stop_and_transcribe,
+            commands::state::cmd_cancel_recording,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Speech");

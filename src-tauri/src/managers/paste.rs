@@ -33,64 +33,66 @@ impl PasteManager {
         *self.previous_app_pid.lock().unwrap() = None;
     }
 
-    /// Inject text into the previously focused application.
-    /// Matches TextInjector.swift:23-77.
-    pub async fn inject_text(&self, text: &str, auto_paste: bool) -> Result<()> {
-        // Save current clipboard contents for restoration
-        let saved_clipboard = get_clipboard_text();
-
-        // Set clipboard to transcribed text
-        set_clipboard_text(text)?;
-
-        // Wait for clipboard to propagate (100ms, matching TextInjector.swift:33)
-        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-
-        // Restore focus to previous app
-        let prev_pid = *self.previous_app_pid.lock().unwrap();
-        if let Some(pid) = prev_pid {
-            activate_app_by_pid(pid);
-
-            // Wait for app to become active (matching TextInjector.swift:40-44)
-            for _ in 0..20 {
-                if get_frontmost_app_pid() == Some(pid) {
-                    break;
-                }
-                tokio::time::sleep(std::time::Duration::from_millis(25)).await;
-            }
-        }
-
-        // Buffer after focus restoration (100ms, matching TextInjector.swift:48)
-        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-
-        // Set clipboard AGAIN after focus restore (matching TextInjector.swift:51)
-        set_clipboard_text(text)?;
-
-        // Final buffer (50ms, matching TextInjector.swift:54)
-        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-
-        if auto_paste {
-            // Wait for modifier release (matching TextInjector.swift:82-95)
-            wait_for_modifier_release().await;
-
-            // Simulate Cmd+V (matching TextInjector.swift:98-113)
-            if simulate_paste() {
-                // Restore original clipboard after paste (100ms delay, matching TextInjector.swift:64-69)
-                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-                if let Some(saved) = saved_clipboard {
-                    let _ = set_clipboard_text(&saved);
-                } else {
-                    let _ = clear_clipboard();
-                }
-            } else {
-                tracing::warn!("Failed to simulate Cmd+V paste");
-            }
-        }
-
-        // Clear previous app reference
-        self.clear_previous_app();
-
-        Ok(())
+    /// Get the saved previous app PID (used to pass to standalone inject function).
+    pub fn get_previous_app_pid(&self) -> Option<i32> {
+        *self.previous_app_pid.lock().unwrap()
     }
+}
+
+/// Standalone async text injection that takes a pre-extracted PID.
+/// This avoids holding a MutexGuard across await points.
+/// Matches TextInjector.swift:23-77.
+pub async fn inject_text_with_pid(text: &str, auto_paste: bool, prev_pid: Option<i32>) -> Result<()> {
+    // Save current clipboard contents for restoration
+    let saved_clipboard = get_clipboard_text();
+
+    // Set clipboard to transcribed text
+    set_clipboard_text(text)?;
+
+    // Wait for clipboard to propagate (100ms, matching TextInjector.swift:33)
+    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+
+    // Restore focus to previous app
+    if let Some(pid) = prev_pid {
+        activate_app_by_pid(pid);
+
+        // Wait for app to become active (matching TextInjector.swift:40-44)
+        for _ in 0..20 {
+            if get_frontmost_app_pid() == Some(pid) {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+        }
+    }
+
+    // Buffer after focus restoration (100ms, matching TextInjector.swift:48)
+    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+
+    // Set clipboard AGAIN after focus restore (matching TextInjector.swift:51)
+    set_clipboard_text(text)?;
+
+    // Final buffer (50ms, matching TextInjector.swift:54)
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+    if auto_paste {
+        // Wait for modifier release (matching TextInjector.swift:82-95)
+        wait_for_modifier_release().await;
+
+        // Simulate Cmd+V (matching TextInjector.swift:98-113)
+        if simulate_paste() {
+            // Restore original clipboard after paste (100ms delay, matching TextInjector.swift:64-69)
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+            if let Some(saved) = saved_clipboard {
+                let _ = set_clipboard_text(&saved);
+            } else {
+                let _ = clear_clipboard();
+            }
+        } else {
+            tracing::warn!("Failed to simulate Cmd+V paste");
+        }
+    }
+
+    Ok(())
 }
 
 /// Get the frontmost application's PID via NSWorkspace.
@@ -168,7 +170,7 @@ fn clear_clipboard() -> Result<()> {
 async fn wait_for_modifier_release() {
     #[cfg(target_os = "macos")]
     {
-        use objc::runtime::{Class, Object};
+        use objc::runtime::Class;
         use objc::{msg_send, sel, sel_impl};
 
         let relevant_modifiers: u64 = (1 << 17) | (1 << 18) | (1 << 19) | (1 << 20);
