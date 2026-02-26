@@ -7,6 +7,7 @@ actor AudioRecorder {
     private var audioEngine: AVAudioEngine?
     private var audioFile: AVAudioFile?
     private var recordingURL: URL?
+    private(set) var currentLevel: Float = 0
 
     enum AudioRecorderError: LocalizedError {
         case engineNotAvailable
@@ -73,6 +74,21 @@ actor AudioRecorder {
         inputNode.installTap(onBus: 0, bufferSize: 4096, format: format) { [weak self] buffer, _ in
             guard let self = self else { return }
 
+            // Compute RMS from input buffer for waveform visualization
+            if let channelData = buffer.floatChannelData {
+                let frameLength = Int(buffer.frameLength)
+                let data = channelData[0]
+                var sum: Float = 0
+                for i in 0..<frameLength {
+                    sum += data[i] * data[i]
+                }
+                let rms = sqrt(sum / Float(max(frameLength, 1)))
+                let normalized = min(rms * 5.0, 1.0)
+                Task {
+                    await self.updateLevel(normalized)
+                }
+            }
+
             let frameCount = AVAudioFrameCount(
                 Double(buffer.frameLength) * (16000.0 / format.sampleRate)
             )
@@ -104,6 +120,10 @@ actor AudioRecorder {
         try? audioFile?.write(from: buffer)
     }
 
+    private func updateLevel(_ level: Float) {
+        currentLevel = level
+    }
+
     func stopRecording() throws -> URL {
         guard let engine = audioEngine, let url = recordingURL else {
             throw AudioRecorderError.notRecording
@@ -115,6 +135,7 @@ actor AudioRecorder {
 
         audioFile = nil
         audioEngine = nil
+        currentLevel = 0
 
         let finalURL = url
         recordingURL = nil

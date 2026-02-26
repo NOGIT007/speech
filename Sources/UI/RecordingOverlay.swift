@@ -44,6 +44,7 @@ class RecordingOverlayWindow: NSWindow {
 
 struct RecordingOverlayView: View {
     let mode: OverlayMode
+    @ObservedObject private var appState = AppState.shared
     private var autoPaste: Bool {
         UserDefaults.standard.bool(forKey: "autoPaste")
     }
@@ -52,7 +53,7 @@ struct RecordingOverlayView: View {
         VStack(spacing: 14) {
             switch mode {
             case .recording:
-                AudioWaveformView()
+                AudioWaveformView(audioLevel: appState.audioLevel)
                     .frame(height: 85)
 
                 Text("Recording...")
@@ -103,26 +104,33 @@ struct RecordingOverlayView: View {
 }
 
 struct AudioWaveformView: View {
+    let audioLevel: Float
     let barCount = 5
-    @State private var animating = false
 
     var body: some View {
         HStack(spacing: 4) {
             ForEach(0..<barCount, id: \.self) { index in
-                WaveformBar(delay: Double(index) * 0.1, animating: animating)
+                WaveformBar(audioLevel: audioLevel, barIndex: index, barCount: barCount)
             }
-        }
-        .onAppear {
-            animating = true
         }
     }
 }
 
 struct WaveformBar: View {
-    let delay: Double
-    let animating: Bool
+    let audioLevel: Float
+    let barIndex: Int
+    let barCount: Int
 
-    @State private var height: CGFloat = 8
+    private var barHeight: CGFloat {
+        let minHeight: CGFloat = 8
+        let maxHeight: CGFloat = 80
+        // Center bars are taller, edges shorter for visual interest
+        let center = Float(barCount - 1) / 2.0
+        let centerDistance = abs(Float(barIndex) - center) / max(center, 1)
+        let variation = 1.0 - centerDistance * 0.3
+        let level = CGFloat(audioLevel) * CGFloat(variation)
+        return minHeight + (maxHeight - minHeight) * level
+    }
 
     var body: some View {
         RoundedRectangle(cornerRadius: 3)
@@ -133,27 +141,8 @@ struct WaveformBar: View {
                     endPoint: .top
                 )
             )
-            .frame(width: 12, height: height)
-            .onAppear {
-                if animating {
-                    startAnimation()
-                }
-            }
-            .onChange(of: animating) { newValue in
-                if newValue {
-                    startAnimation()
-                }
-            }
-    }
-
-    private func startAnimation() {
-        withAnimation(
-            .easeInOut(duration: 0.4)
-            .repeatForever(autoreverses: true)
-            .delay(delay)
-        ) {
-            height = CGFloat.random(in: 35...80)
-        }
+            .frame(width: 12, height: barHeight)
+            .animation(.easeOut(duration: 0.08), value: audioLevel)
     }
 }
 

@@ -39,7 +39,9 @@ class AppState: ObservableObject {
             NotificationCenter.default.post(name: .switchHotkeyConfigChanged, object: nil)
         }
     }
+    @Published var audioLevel: Float = 0
     private var recordingStartTask: Task<Void, Never>?
+    private var audioLevelTask: Task<Void, Never>?
 
     var activeProfile: ModelProfile? {
         guard !profiles.isEmpty else { return nil }
@@ -116,6 +118,7 @@ class AppState: ObservableObject {
                 try await AudioRecorder.shared.startRecording()
                 // Only show UI after mic is actually capturing
                 self.isRecording = true
+                self.startAudioLevelMonitoring()
                 RecordingOverlayController.shared.show()
             } catch {
                 self.errorMessage = "Failed to start recording: \(error.localizedDescription)"
@@ -157,6 +160,7 @@ class AppState: ObservableObject {
     }
 
     private func performStopAndTranscribe() {
+        stopAudioLevelMonitoring()
         isRecording = false
         isTranscribing = true
 
@@ -208,6 +212,22 @@ class AppState: ObservableObject {
                 }
             }
         }
+    }
+
+    private func startAudioLevelMonitoring() {
+        audioLevelTask = Task {
+            while !Task.isCancelled {
+                let level = await AudioRecorder.shared.currentLevel
+                self.audioLevel = level
+                try? await Task.sleep(nanoseconds: 33_000_000) // ~30fps
+            }
+        }
+    }
+
+    private func stopAudioLevelMonitoring() {
+        audioLevelTask?.cancel()
+        audioLevelTask = nil
+        audioLevel = 0
     }
 }
 
