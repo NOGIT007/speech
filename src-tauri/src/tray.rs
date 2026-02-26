@@ -19,10 +19,8 @@ pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
     let quit_item = MenuItem::with_id(app, "quit", "Quit Speech", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&settings_item, &quit_item])?;
 
-    let icon = app
-        .default_window_icon()
-        .cloned()
-        .expect("no default window icon set in tauri.conf.json");
+    // Load the tray-specific icon (small template icon for macOS menu bar)
+    let icon = tauri::include_image!("icons/tray-icon.png");
 
     let _tray = TrayIconBuilder::new()
         .icon(icon)

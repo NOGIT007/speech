@@ -261,14 +261,29 @@ pub fn stop_and_transcribe(app: &AppHandle) -> Result<(), String> {
     }
 
     // Perform transcription (currently a stub, will be wired to transcribe-rs)
-    let result;
-    {
+    let result = {
         let ts = app.state::<crate::commands::model::TranscriptionState>();
         let ts = ts.0.lock().map_err(|e| e.to_string())?;
-        result = ts
-            .transcribe(&audio_path, &language)
-            .map_err(|e| e.to_string())?;
-    }
+        match ts.transcribe(&audio_path, &language) {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::error!("Transcription failed: {}", e);
+                // Reset to idle on failure
+                {
+                    let coord = app.state::<CoordinatorState>();
+                    let mut coord = coord.0.lock().map_err(|e| e.to_string())?;
+                    coord.phase = AppPhase::Idle;
+                }
+                let _ = app.emit(EVENT_PHASE_CHANGED, AppPhase::Idle);
+                if let Some(window) = app.get_webview_window("recording-overlay") {
+                    let _ = window.hide();
+                }
+                let _ = std::fs::remove_file(&audio_path);
+                let _ = app.emit(EVENT_ERROR, format!("Transcription failed: {}", e));
+                return Err(e.to_string());
+            }
+        }
+    };
 
     let mut text = result.text;
 

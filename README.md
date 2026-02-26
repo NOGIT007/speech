@@ -1,147 +1,85 @@
-# Speech to text
+# Speech
 
-A lightweight macOS menu bar app for speech-to-text using local Whisper models. All transcription happens on-device - no cloud services, no API keys, complete privacy.
+A macOS menu bar app for speech-to-text using local Whisper models. All transcription happens on-device — no cloud services, no API keys, complete privacy.
 
-![macOS](https://img.shields.io/badge/macOS-13%2B-blue)
-![Swift](https://img.shields.io/badge/Swift-5.9-orange)
+![macOS](https://img.shields.io/badge/macOS-14%2B-blue)
+![Rust](https://img.shields.io/badge/Rust-Tauri%202-orange)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## Features
 
 - **Hold-to-record**: Hold the hotkey to record, release to transcribe and auto-paste
-- **Local processing**: Uses OpenAI's Whisper model running entirely on your Mac
+- **Local processing**: Whisper models running entirely on your Mac
 - **Privacy-first**: No data leaves your device
-- **Multiple models**: Choose between Tiny (fast), Base (balanced), or Small (accurate)
-- **Multi-language**: Supports 12+ languages with auto-detection
+- **Multiple engines**: Whisper, Moonshine, Parakeet, SenseVoice
+- **Model profiles**: Save different model configurations and switch between them
+- **Multi-language**: 25+ languages with auto-detection
 - **Customizable hotkey**: Default is `⌥Space` (Option + Space)
+- **Auto-update**: Checks for updates from GitHub releases
+
+## Tech Stack
+
+- **Tauri 2** — native macOS app shell
+- **Rust** — audio recording, transcription, hotkeys, paste injection
+- **Svelte 5** + **Tailwind CSS** — UI (menu bar panel, overlays, settings)
+- **transcribe-rs** — local Whisper inference
 
 ## Installation
 
 ### Requirements
 
-- macOS 13.0 or later
-- ~100MB disk space (for models)
+- macOS 14.0 or later
 
 ### Download & Install
 
-1. Download the latest release from [Releases](https://github.com/NOGIT007/speech/releases)
+1. Download the latest release from [Releases](https://github.com/kennetkusk/speech/releases)
 2. Unzip and drag `Speech.app` to `/Applications`
-3. Open `Speech.app` from Applications
+3. Open `Speech.app`
 
-> **macOS Gatekeeper warning:** Since the app is not notarized with Apple, macOS may show "Speech Not Opened" or "cannot be verified". To bypass this:
->
-> 1. **Right-click** (or Control-click) `Speech.app` → click **Open** → click **Open** again
-> 2. Or go to **System Settings → Privacy & Security**, scroll down, and click **Open Anyway**
->
-> This only needs to be done once.
+> **macOS Gatekeeper:** Since the app is not notarized, macOS may block it. Right-click → **Open** → **Open** again, or go to **System Settings → Privacy & Security → Open Anyway**.
 
 ### Build from Source
 
 ```bash
-# Clone the repository
-git clone https://github.com/NOGIT007/speech.git
+git clone https://github.com/kennetkusk/speech.git
 cd speech
-
-# Build the app
+bun install
 ./build_app.sh
-
-# Install to Applications
 cp -R .build/Speech.app /Applications/
-
-# Launch
 open /Applications/Speech.app
 ```
 
 ## Setup
 
-On first launch, Speech will request the following permissions. You can check their status in **Settings → Permissions**.
+On first launch, grant these permissions (check status in **Settings → Permissions**):
 
-### 1. Microphone Access
+1. **Microphone** — required for recording
+2. **Accessibility** — required for auto-paste and global hotkey
+3. **Input Monitoring** — required for keyboard simulation
 
-Required to record your voice. Click **Allow** when prompted.
-
-### 2. Accessibility Access
-
-Required for auto-paste and the global hotkey.
-
-Go to **System Settings → Privacy & Security → Accessibility** and add **Speech.app**, or click **Grant** in Settings → Permissions.
-
-### 3. Input Monitoring
-
-Required for keyboard simulation (auto-paste).
-
-Go to **System Settings → Privacy & Security → Input Monitoring** and add **Speech.app**, or click **Grant** in Settings → Permissions.
-
-### 4. Download a Model
-
-Click the Speech menu bar icon and select a model to download:
-
-- **Tiny (39 MB)** - Fastest, good for quick notes
-- **Base (74 MB)** - Balanced speed and accuracy
-- **Small (244 MB)** - Best accuracy
+Then download a model in **Settings → Models**.
 
 ## Usage
 
-1. Click the menu bar icon to see the current status
-2. **Hold** `⌥Space` (Option + Space) to start recording
-3. **Wait ~1 second** for the recording overlay to appear, then speak clearly
-4. **Release** the hotkey to transcribe
-5. The text is **automatically pasted** into the active app
+1. **Hold** `⌥Space` to start recording
+2. Speak clearly
+3. **Release** to transcribe and auto-paste
 
-> **Tip:** The overlay shows three states: **Recording** → **Processing** → **Pasted!**. Auto-paste is on by default. You can disable it in **Settings → After Transcription** to use manual `⌘V` instead.
+> Press **Escape** while recording to cancel.
 
-### Changing the Hotkey
+### Settings
 
-1. Click the menu bar icon
-2. Select **Settings...**
-3. Click the hotkey field and press your preferred key combination
+Click the menu bar icon → **Settings** to configure:
 
-## Troubleshooting
-
-### Hotkey not working
-
-- Ensure Speech.app has **Accessibility** permission enabled
-- Try restarting the app after granting permissions
-
-### Transcription is slow
-
-- Try using a smaller model (Tiny or Base)
-- Ensure no other heavy processes are running
-
-### Auto-paste not working
-
-Auto-paste requires both **Accessibility** and **Input Monitoring** permissions. If it's not working:
-
-1. Open **Settings → Permissions** and check all three have green checkmarks
-2. If Accessibility or Input Monitoring show "Grant", click the button and add Speech.app in System Settings
-3. If permissions were previously granted but stopped working (e.g. after an update), reset them in Terminal:
-   ```bash
-   tccutil reset Accessibility com.speech.app
-   tccutil reset ListenEvent com.speech.app
-   ```
-   Then re-grant both permissions in System Settings → Privacy & Security.
-4. You can disable auto-paste in **Settings → General → After Transcription** to use manual `⌘V` instead
-
-### Poor transcription quality
-
-- Speak clearly and at a moderate pace
-- Try the Small model for better accuracy
-- Select the correct language in Settings if not using English
+- **General**: Hotkey, language, auto-paste, launch at login
+- **Models**: Download/manage transcription models
+- **Profiles**: Save model configurations for quick switching
+- **Permissions**: Check macOS permission status
 
 ## Privacy
 
-Speech processes all audio locally using Whisper models. No audio or text is ever sent to external servers. Your voice data stays on your device.
-
-## Tech Stack
-
-- **Swift** + **SwiftUI** for the app
-- **[SwiftWhisper](https://github.com/exPHAT/SwiftWhisper)** for local Whisper inference
-- **[HotKey](https://github.com/soffes/HotKey)** for global hotkey handling
+All audio is processed locally. No data is sent to external servers.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
-
-## Contributing
-
-Contributions are welcome! Please open an issue or submit a pull request.
+MIT — see [LICENSE](LICENSE).

@@ -51,10 +51,6 @@
         "alwaysOnTop": true
       }
     ],
-    "trayIcon": {
-      "iconPath": "icons/tray-icon.png",
-      "iconAsTemplate": true
-    },
     "security": {
       "csp": null
     }
@@ -73,14 +69,5 @@
       "minimumSystemVersion": "14.0"
     }
   },
-  "plugins": {
-    "global-shortcut": {},
-    "store": {},
-    "updater": {
-      "endpoints": [
-        "https://github.com/kennetkusk/speech/releases/latest/download/latest.json"
-      ],
-      "pubkey": ""
-    }
-  }
+  "plugins": {}
 }
