@@ -1,5 +1,5 @@
-/** Application state phases */
-export type AppPhase = "idle" | "recording" | "processing" | "error";
+/** Application state phases (matches Rust AppPhase enum) */
+export type AppPhase = "idle" | "recording" | "processing";
 
 /** Transcription engine types */
 export type EngineType = "whisper" | "parakeet" | "moonshine" | "sensevoice";
@@ -25,13 +25,12 @@ export interface Profile {
   language: string;
 }
 
-/** A completed transcription */
-export interface TranscriptionEntry {
+/** A transcription history item (matches Rust TranscriptionItem) */
+export interface TranscriptionItem {
   id: string;
   text: string;
-  modelId: string;
-  duration: number;
-  timestamp: number;
+  timestamp: string;
+  preview: string;
 }
 
 /** Audio level event from recording */
@@ -41,23 +40,21 @@ export interface AudioLevelEvent {
 }
 
 /** Permission status for system capabilities */
-export type PermissionStatus = "granted" | "denied" | "unknown";
-
-/** All permission states */
-export interface Permissions {
-  microphone: PermissionStatus;
-  accessibility: PermissionStatus;
-  inputMonitoring: PermissionStatus;
+export interface PermissionStatus {
+  microphone: boolean;
+  accessibility: boolean;
+  inputMonitoring: boolean;
 }
 
-/** Settings stored in tauri-plugin-store */
+/** Settings stored in tauri-plugin-store (matches Rust AppSettings) */
 export interface Settings {
-  hotkey: string;
+  launchAtLogin: boolean;
   autoPaste: boolean;
-  autoStart: boolean;
-  removeFiller: boolean;
-  activeModelId: string;
-  activeProfileId: string;
-  profiles: Profile[];
-  switchProfileHotkey: string;
+  removeFillerWords: boolean;
+  recordHotkey: string;
+  switchHotkey: string;
+  switchHotkeyEnabled: boolean;
+  selectedLanguage: string;
+  selectedModel: string;
+  activeProfileIndex: number;
 }

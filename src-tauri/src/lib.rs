@@ -90,6 +90,8 @@ pub fn run() {
             commands::state::cmd_start_recording,
             commands::state::cmd_stop_and_transcribe,
             commands::state::cmd_cancel_recording,
+            commands::state::copy_to_clipboard,
+            commands::state::relaunch_app,
             commands::settings::get_settings,
             commands::settings::update_setting,
             commands::settings::open_settings,

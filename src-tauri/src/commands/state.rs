@@ -74,3 +74,41 @@ pub fn cmd_stop_and_transcribe(app: AppHandle) -> Result<(), String> {
 pub fn cmd_cancel_recording(app: AppHandle) -> Result<(), String> {
     crate::state::cancel_recording(&app)
 }
+
+/// Copy text to the system clipboard.
+#[tauri::command]
+pub fn copy_to_clipboard(text: String) -> Result<(), String> {
+    let mut clipboard = arboard::Clipboard::new().map_err(|e| e.to_string())?;
+    clipboard.set_text(text).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Relaunch the application.
+/// Matches MenuBarView.swift:201-211.
+#[tauri::command]
+pub fn relaunch_app() -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        if let Ok(exe) = std::env::current_exe() {
+            // Navigate up from binary to .app bundle
+            let app_bundle = exe
+                .parent() // MacOS
+                .and_then(|p| p.parent()) // Contents
+                .and_then(|p| p.parent()); // .app
+
+            if let Some(app_path) = app_bundle {
+                let _ = std::process::Command::new("open")
+                    .arg("-n")
+                    .arg(app_path)
+                    .spawn();
+            }
+        }
+
+        std::thread::spawn(|| {
+            std::thread::sleep(std::time::Duration::from_millis(500));
+            std::process::exit(0);
+        });
+    }
+
+    Ok(())
+}
