@@ -4,6 +4,7 @@ pub mod permissions;
 pub mod profiles;
 pub mod settings;
 pub mod state;
+pub mod update;
 
 /// Placeholder command to verify Tauri IPC works.
 #[tauri::command]

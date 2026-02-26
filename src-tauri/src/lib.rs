@@ -26,6 +26,11 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .setup(|app| {
             // Set activation policy to Accessory (no dock icon, like LSUIElement)
             #[cfg(target_os = "macos")]
@@ -77,6 +82,7 @@ pub fn run() {
             commands::audio::stop_recording,
             commands::audio::get_audio_level,
             commands::model::list_models,
+            commands::model::list_models_grouped,
             commands::model::delete_model,
             commands::model::download_model,
             commands::model::get_supported_languages,
@@ -106,6 +112,8 @@ pub fn run() {
             commands::permissions::check_permissions,
             commands::permissions::open_permission_settings,
             commands::permissions::reset_permissions,
+            commands::update::check_for_update,
+            commands::update::install_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Speech");

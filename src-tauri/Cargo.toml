@@ -19,6 +19,8 @@ tauri = { version = "2", features = ["macos-private-api", "tray-icon"] }
 tauri-plugin-store = "2"
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-shell = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-autostart = "2"
 
 # Transcription
 # transcribe-rs = "0.2.5"  # TODO: uncomment when wiring transcription

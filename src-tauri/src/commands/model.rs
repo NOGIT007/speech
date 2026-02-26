@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use tauri::{Emitter, State};
 
-use crate::managers::model::{ModelManager, ModelStatus};
+use crate::managers::model::{EngineGroup, ModelManager, ModelStatus};
 use crate::managers::transcription::TranscriptionManager;
 
 pub struct ModelState(pub Mutex<ModelManager>);
@@ -24,6 +24,26 @@ pub fn list_models(
     }
 
     Ok(models)
+}
+
+#[tauri::command]
+pub fn list_models_grouped(
+    model_mgr: State<ModelState>,
+    active_model_id: Option<String>,
+) -> Result<Vec<EngineGroup>, String> {
+    let mgr = model_mgr.0.lock().map_err(|e| e.to_string())?;
+    let mut groups = mgr.list_models_grouped();
+
+    // Mark the active model
+    if let Some(active_id) = active_model_id {
+        for group in &mut groups {
+            for model in &mut group.models {
+                model.active = model.info.id == active_id;
+            }
+        }
+    }
+
+    Ok(groups)
 }
 
 #[tauri::command]

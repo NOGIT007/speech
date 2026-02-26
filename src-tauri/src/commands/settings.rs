@@ -1,4 +1,5 @@
 use tauri::{AppHandle, Manager};
+use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_store::StoreExt;
 
 use crate::managers::settings::AppSettings;
@@ -80,6 +81,16 @@ pub fn update_setting(app: AppHandle, key: String, value: serde_json::Value) -> 
             if let Some(lang) = stored_value.and_then(|v| v.as_str().map(|s| s.to_string())) {
                 let coord = app.state::<crate::state::CoordinatorState>();
                 let _ = coord.0.lock().map(|mut c| c.set_language(lang));
+            }
+        }
+        "launchAtLogin" => {
+            if let Some(enabled) = stored_value.and_then(|v| v.as_bool()) {
+                let autostart = app.autolaunch();
+                if enabled {
+                    let _ = autostart.enable();
+                } else {
+                    let _ = autostart.disable();
+                }
             }
         }
         _ => {}

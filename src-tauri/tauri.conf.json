@@ -75,6 +75,12 @@
   },
   "plugins": {
     "global-shortcut": {},
-    "store": {}
+    "store": {},
+    "updater": {
+      "endpoints": [
+        "https://github.com/kennetkusk/speech/releases/latest/download/latest.json"
+      ],
+      "pubkey": ""
+    }
   }
 }

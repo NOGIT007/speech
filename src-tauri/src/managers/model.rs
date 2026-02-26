@@ -53,10 +53,10 @@ impl ModelManager {
     }
 
     /// Build the initial model registry.
-    /// Matches AppState.swift:234-276 (WhisperModel enum) plus new engines.
+    /// Includes Whisper, Moonshine, Parakeet, and SenseVoice engines.
     fn build_registry() -> Vec<ModelInfo> {
         vec![
-            // Whisper models (matching existing Swift WhisperModel enum)
+            // ── Whisper models (ggerganov/whisper.cpp GGML) ──
             ModelInfo {
                 id: "whisper-tiny".into(),
                 engine: EngineType::Whisper,
@@ -111,11 +111,79 @@ impl ModelManager {
                 languages: Self::whisper_languages(),
                 repo_id: "ggerganov/whisper.cpp".into(),
             },
+
+            // ── Moonshine models (useful-sensors, English-only, ultra-fast) ──
+            ModelInfo {
+                id: "moonshine-tiny".into(),
+                engine: EngineType::Moonshine,
+                name: "tiny".into(),
+                display_name: "Moonshine Tiny (~31 MB) - Ultra-fast".into(),
+                size: "31MB".into(),
+                languages: Self::english_only(),
+                repo_id: "UsefulSensors/moonshine-tiny-gguf".into(),
+            },
+            ModelInfo {
+                id: "moonshine-base".into(),
+                engine: EngineType::Moonshine,
+                name: "base".into(),
+                display_name: "Moonshine Base (~31 MB) - Fast".into(),
+                size: "31MB".into(),
+                languages: Self::english_only(),
+                repo_id: "UsefulSensors/moonshine-base-gguf".into(),
+            },
+            ModelInfo {
+                id: "moonshine-small".into(),
+                engine: EngineType::Moonshine,
+                name: "small".into(),
+                display_name: "Moonshine Small (~100 MB) - Balanced".into(),
+                size: "100MB".into(),
+                languages: Self::english_only(),
+                repo_id: "UsefulSensors/moonshine-small-gguf".into(),
+            },
+            ModelInfo {
+                id: "moonshine-medium".into(),
+                engine: EngineType::Moonshine,
+                name: "medium".into(),
+                display_name: "Moonshine Medium (~192 MB) - Accurate".into(),
+                size: "192MB".into(),
+                languages: Self::english_only(),
+                repo_id: "UsefulSensors/moonshine-medium-gguf".into(),
+            },
+
+            // ── Parakeet models (NVIDIA, fast CTC-based) ──
+            ModelInfo {
+                id: "parakeet-v2".into(),
+                engine: EngineType::Parakeet,
+                name: "v2".into(),
+                display_name: "Parakeet V2 (~473 MB) - English Only".into(),
+                size: "473MB".into(),
+                languages: Self::english_only(),
+                repo_id: "nvidia/parakeet-tdt-0.6b-v2".into(),
+            },
+            ModelInfo {
+                id: "parakeet-v3".into(),
+                engine: EngineType::Parakeet,
+                name: "v3".into(),
+                display_name: "Parakeet V3 (~478 MB) - 25 Languages".into(),
+                size: "478MB".into(),
+                languages: Self::parakeet_v3_languages(),
+                repo_id: "nvidia/parakeet-tdt-0.6b-v3".into(),
+            },
+
+            // ── SenseVoice (FunAudioLLM, CJK-focused) ──
+            ModelInfo {
+                id: "sensevoice-small".into(),
+                engine: EngineType::SenseVoice,
+                name: "small".into(),
+                display_name: "SenseVoice Small (~160 MB) - CJK + English".into(),
+                size: "160MB".into(),
+                languages: Self::sensevoice_languages(),
+                repo_id: "FunAudioLLM/SenseVoiceSmall".into(),
+            },
         ]
     }
 
     /// Whisper's multilingual language list.
-    /// Matches AppState.swift:481-523.
     fn whisper_languages() -> Vec<String> {
         vec![
             "auto", "en", "es", "fr", "de", "it", "pt", "nl", "pl", "ru", "ja", "zh", "ko",
@@ -124,6 +192,30 @@ impl ModelManager {
         .into_iter()
         .map(String::from)
         .collect()
+    }
+
+    /// English-only language list (Moonshine, Parakeet V2).
+    fn english_only() -> Vec<String> {
+        vec!["en".to_string()]
+    }
+
+    /// Parakeet V3's 25 European language list.
+    fn parakeet_v3_languages() -> Vec<String> {
+        vec![
+            "en", "es", "fr", "de", "it", "pt", "nl", "pl", "ru", "da", "no", "sv", "fi",
+            "cs", "uk", "hu", "ro", "bg", "hr", "sk", "sl", "lt", "lv", "et", "ca",
+        ]
+        .into_iter()
+        .map(String::from)
+        .collect()
+    }
+
+    /// SenseVoice languages (CJK-focused).
+    fn sensevoice_languages() -> Vec<String> {
+        vec!["zh", "en", "ja", "ko", "yue"]
+            .into_iter()
+            .map(String::from)
+            .collect()
     }
 
     /// Get all supported languages with display names.
@@ -146,6 +238,19 @@ impl ModelManager {
             Language { code: "no".into(), name: "Norwegian".into() },
             Language { code: "sv".into(), name: "Swedish".into() },
             Language { code: "fi".into(), name: "Finnish".into() },
+            Language { code: "yue".into(), name: "Cantonese".into() },
+            Language { code: "cs".into(), name: "Czech".into() },
+            Language { code: "uk".into(), name: "Ukrainian".into() },
+            Language { code: "hu".into(), name: "Hungarian".into() },
+            Language { code: "ro".into(), name: "Romanian".into() },
+            Language { code: "bg".into(), name: "Bulgarian".into() },
+            Language { code: "hr".into(), name: "Croatian".into() },
+            Language { code: "sk".into(), name: "Slovak".into() },
+            Language { code: "sl".into(), name: "Slovenian".into() },
+            Language { code: "lt".into(), name: "Lithuanian".into() },
+            Language { code: "lv".into(), name: "Latvian".into() },
+            Language { code: "et".into(), name: "Estonian".into() },
+            Language { code: "ca".into(), name: "Catalan".into() },
         ]
     }
 
@@ -180,20 +285,90 @@ impl ModelManager {
         self.registry.iter().find(|m| m.id == model_id)
     }
 
-    /// Get the download URL for a model's GGML file from HuggingFace.
+    /// Get the download URL for a model file from HuggingFace.
     pub fn get_download_url(&self, model: &ModelInfo) -> String {
-        // HuggingFace direct download URLs for whisper.cpp GGML models
-        match model.name.as_str() {
-            "tiny" => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin".into(),
-            "base" => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin".into(),
-            "small" => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin".into(),
-            "medium" => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin".into(),
-            "large-v3-turbo" => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin".into(),
-            "large-v3" => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin".into(),
-            _ => format!(
-                "https://huggingface.co/{}/resolve/main/ggml-{}.bin",
-                model.repo_id, model.name
-            ),
+        match model.engine {
+            EngineType::Whisper => {
+                // ggerganov/whisper.cpp GGML binaries
+                format!(
+                    "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-{}.bin",
+                    model.name
+                )
+            }
+            EngineType::Moonshine => {
+                // UsefulSensors GGUF quantised models
+                format!(
+                    "https://huggingface.co/{}/resolve/main/moonshine-{}-q8_0.gguf",
+                    model.repo_id, model.name
+                )
+            }
+            EngineType::Parakeet => {
+                // NVIDIA Parakeet ONNX models
+                format!(
+                    "https://huggingface.co/{}/resolve/main/model.onnx",
+                    model.repo_id
+                )
+            }
+            EngineType::SenseVoice => {
+                // FunAudioLLM SenseVoice ONNX
+                format!(
+                    "https://huggingface.co/{}/resolve/main/model.onnx",
+                    model.repo_id
+                )
+            }
+        }
+    }
+
+    /// List models grouped by engine type.
+    pub fn list_models_grouped(&self) -> Vec<EngineGroup> {
+        let engines = [
+            EngineType::Whisper,
+            EngineType::Moonshine,
+            EngineType::Parakeet,
+            EngineType::SenseVoice,
+        ];
+
+        engines
+            .iter()
+            .map(|&engine| {
+                let models: Vec<ModelStatus> = self
+                    .registry
+                    .iter()
+                    .filter(|m| m.engine == engine)
+                    .map(|model| ModelStatus {
+                        info: model.clone(),
+                        downloaded: self.is_model_downloaded(&model.id),
+                        active: false,
+                    })
+                    .collect();
+
+                EngineGroup {
+                    engine,
+                    display_name: Self::engine_display_name(engine).to_string(),
+                    description: Self::engine_description(engine).to_string(),
+                    models,
+                }
+            })
+            .collect()
+    }
+
+    /// Get a display name for an engine type.
+    pub fn engine_display_name(engine: EngineType) -> &'static str {
+        match engine {
+            EngineType::Whisper => "Whisper",
+            EngineType::Moonshine => "Moonshine",
+            EngineType::Parakeet => "Parakeet",
+            EngineType::SenseVoice => "SenseVoice",
+        }
+    }
+
+    /// Get a description for an engine type.
+    pub fn engine_description(engine: EngineType) -> &'static str {
+        match engine {
+            EngineType::Whisper => "OpenAI - Multilingual, most versatile",
+            EngineType::Moonshine => "Useful Sensors - English-only, ultra-fast on device",
+            EngineType::Parakeet => "NVIDIA - Fast CTC-based recognition",
+            EngineType::SenseVoice => "FunAudioLLM - Chinese/Japanese/Korean/English",
         }
     }
 
@@ -223,4 +398,14 @@ pub struct ModelStatus {
     pub info: ModelInfo,
     pub downloaded: bool,
     pub active: bool,
+}
+
+/// A group of models by engine type.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EngineGroup {
+    pub engine: EngineType,
+    pub display_name: String,
+    pub description: String,
+    pub models: Vec<ModelStatus>,
 }

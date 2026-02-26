@@ -6,4 +6,5 @@ pub mod hotkey;            // Task #10
 pub mod paste;             // Task #11
 pub mod settings;          // Task #14
 pub mod permissions;       // Task #16
+pub mod update;            // Task #19
 // pub mod overlay;       // Task #13

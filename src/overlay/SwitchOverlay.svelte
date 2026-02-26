@@ -57,6 +57,19 @@
       no: "Norwegian",
       sv: "Swedish",
       fi: "Finnish",
+      yue: "Cantonese",
+      cs: "Czech",
+      uk: "Ukrainian",
+      hu: "Hungarian",
+      ro: "Romanian",
+      bg: "Bulgarian",
+      hr: "Croatian",
+      sk: "Slovak",
+      sl: "Slovenian",
+      lt: "Lithuanian",
+      lv: "Latvian",
+      et: "Estonian",
+      ca: "Catalan",
     };
     return names[code] || code;
   }
