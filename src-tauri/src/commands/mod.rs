@@ -1,3 +1,5 @@
+pub mod audio;
+
 /// Placeholder command to verify Tauri IPC works.
 #[tauri::command]
 pub fn greet(name: &str) -> String {

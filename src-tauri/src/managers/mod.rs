@@ -1,5 +1,5 @@
 // Manager modules will be added as tasks are completed:
-// pub mod audio;         // Task #8
+pub mod audio;             // Task #8
 // pub mod transcription; // Task #9
 // pub mod hotkey;        // Task #10
 // pub mod paste;         // Task #11
