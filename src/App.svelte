@@ -3,6 +3,7 @@
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
   import MenuBarPanel from "./components/MenuBarPanel.svelte";
   import RecordingOverlay from "./overlay/RecordingOverlay.svelte";
+  import SwitchOverlay from "./overlay/SwitchOverlay.svelte";
   import SettingsWindow from "./settings/SettingsWindow.svelte";
 
   const label = getCurrentWebviewWindow().label;
@@ -15,9 +16,7 @@
 {:else if label === "settings"}
   <SettingsWindow />
 {:else if label === "switch-overlay"}
-  <div class="p-4">
-    <p class="text-sm text-gray-400">Switch overlay</p>
-  </div>
+  <SwitchOverlay />
 {:else}
   <div class="p-4">
     <p class="text-sm text-gray-400">Speech v3</p>
