@@ -36,7 +36,7 @@ class SwitchOverlayController {
 
         window?.contentView = NSHostingView(rootView: view)
 
-        if let screen = NSScreen.main {
+        if let screen = NSScreen.screens.first(where: { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) }) ?? NSScreen.main {
             let screenFrame = screen.frame
             let x = screenFrame.midX - 130
             let y = screenFrame.midY - 40

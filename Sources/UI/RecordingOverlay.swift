@@ -28,8 +28,8 @@ class RecordingOverlayWindow: NSWindow {
         hostingView = NSHostingView(rootView: view)
         self.contentView = hostingView
 
-        // Position at center of screen
-        if let screen = NSScreen.main {
+        // Position at center of screen containing cursor
+        if let screen = NSScreen.screens.first(where: { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) }) ?? NSScreen.main {
             let screenFrame = screen.frame
             let x = screenFrame.midX - 190
             let y = screenFrame.midY - 110
