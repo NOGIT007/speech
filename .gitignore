@@ -1,7 +1,21 @@
-.build/
-.swiftpm/
-*.xcodeproj
-*.xcworkspace
-DerivedData/
+# macOS
 .DS_Store
+
+# Claude
 .claude/
+
+# Node / Bun
+node_modules/
+dist/
+.vite/
+
+# Rust / Tauri
+src-tauri/target/
+
+# Build output
+.build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
