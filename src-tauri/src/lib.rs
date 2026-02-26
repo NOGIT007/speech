@@ -78,6 +78,7 @@ pub fn run() {
             commands::audio::get_audio_level,
             commands::model::list_models,
             commands::model::delete_model,
+            commands::model::download_model,
             commands::model::get_supported_languages,
             commands::state::get_phase,
             commands::state::get_history,

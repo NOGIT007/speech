@@ -180,6 +180,23 @@ impl ModelManager {
         self.registry.iter().find(|m| m.id == model_id)
     }
 
+    /// Get the download URL for a model's GGML file from HuggingFace.
+    pub fn get_download_url(&self, model: &ModelInfo) -> String {
+        // HuggingFace direct download URLs for whisper.cpp GGML models
+        match model.name.as_str() {
+            "tiny" => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin".into(),
+            "base" => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin".into(),
+            "small" => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin".into(),
+            "medium" => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin".into(),
+            "large-v3-turbo" => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin".into(),
+            "large-v3" => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin".into(),
+            _ => format!(
+                "https://huggingface.co/{}/resolve/main/ggml-{}.bin",
+                model.repo_id, model.name
+            ),
+        }
+    }
+
     /// Delete a downloaded model.
     pub fn delete_model(&self, model_id: &str) -> Result<()> {
         let model_dir = self.models_dir.join(model_id);
