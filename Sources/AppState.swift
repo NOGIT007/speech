@@ -124,6 +124,22 @@ class AppState: ObservableObject {
         }
     }
 
+    func cancelRecording() {
+        recordingStartTask?.cancel()
+        recordingStartTask = nil
+
+        if isRecording {
+            isRecording = false
+            Task {
+                let url = try? await AudioRecorder.shared.stopRecording()
+                if let url { try? FileManager.default.removeItem(at: url) }
+            }
+        }
+
+        RecordingOverlayController.shared.hide()
+        TextInjector.shared.clearPreviousApp()
+    }
+
     func stopRecordingAndTranscribe() {
         if let startTask = recordingStartTask {
             // Mic still starting — wait for it, then stop
@@ -150,7 +166,11 @@ class AppState: ObservableObject {
         Task {
             do {
                 let audioURL = try await AudioRecorder.shared.stopRecording()
-                let transcription = try await WhisperService.shared.transcribe(audioURL: audioURL, language: selectedLanguage)
+                var transcription = try await WhisperService.shared.transcribe(audioURL: audioURL, language: selectedLanguage)
+
+                if UserDefaults.standard.object(forKey: "removeFillerWords") as? Bool ?? true {
+                    transcription = TextCleaner.clean(transcription)
+                }
 
                 await MainActor.run {
                     self.lastTranscription = transcription

@@ -59,7 +59,7 @@ struct RecordingOverlayView: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.white.opacity(0.9))
 
-                Text("Release to transcribe")
+                Text("Release to transcribe · Esc to cancel")
                     .font(.system(size: 12, weight: .regular))
                     .foregroundColor(.white.opacity(0.6))
 
