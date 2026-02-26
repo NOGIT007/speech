@@ -5,6 +5,7 @@ struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @AppStorage("launchAtLogin") private var launchAtLogin = false
     @AppStorage("autoPaste") private var autoPaste = true
+    @AppStorage("removeFillerWords") private var removeFillerWords = true
     @State private var micPermission = false
     @State private var accessibilityPermission = false
     @State private var inputMonitoringPermission = false
@@ -37,6 +38,7 @@ struct SettingsView: View {
                         setLaunchAtLogin(newValue)
                     }
                 Toggle("Auto-paste text", isOn: $autoPaste)
+                Toggle("Remove filler words", isOn: $removeFillerWords)
             }
 
             Section("Dictation Hotkey") {
