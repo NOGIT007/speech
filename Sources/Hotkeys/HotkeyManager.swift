@@ -85,8 +85,8 @@ class HotkeyManager {
             self?.handleKeyUp()
         }
 
-        // Monitor for key releases
-        eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.flagsChanged, .keyUp]) { [weak self] event in
+        // Monitor for key releases and Escape cancel
+        eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.flagsChanged, .keyUp, .keyDown]) { [weak self] event in
             Task { @MainActor in
                 self?.handleGlobalEvent(event)
             }
@@ -106,6 +106,13 @@ class HotkeyManager {
     }
 
     private func handleGlobalEvent(_ event: NSEvent) {
+        // Check if Escape was pressed during recording to cancel
+        if event.type == .keyDown && event.keyCode == UInt16(kVK_Escape) && isKeyDown {
+            isKeyDown = false
+            AppState.shared.cancelRecording()
+            return
+        }
+
         // Check if modifier was released
         if event.type == .flagsChanged {
             let requiredModifiers = currentConfig.modifiers
