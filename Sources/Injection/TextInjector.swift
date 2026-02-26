@@ -16,8 +16,15 @@ class TextInjector {
         previousApp = NSWorkspace.shared.frontmostApplication
     }
 
+    func clearPreviousApp() {
+        previousApp = nil
+    }
+
     func injectText(_ text: String) async {
         let autoPaste = UserDefaults.standard.bool(forKey: "autoPaste")
+
+        // Save current clipboard contents for later restoration
+        let savedClipboard = NSPasteboard.general.string(forType: .string)
 
         // Set clipboard BEFORE focus restore
         copyToClipboard(text)
@@ -52,6 +59,14 @@ class TextInjector {
             // Simulate ⌘V via CGEvent
             if !simulatePaste() {
                 showPasteNotification(preview: String(text.prefix(50)))
+            } else {
+                // Restore previous clipboard contents after paste completes
+                try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+                if let savedClipboard {
+                    copyToClipboard(savedClipboard)
+                } else {
+                    NSPasteboard.general.clearContents()
+                }
             }
         } else {
             // Manual mode: show notification for user to press ⌘V
