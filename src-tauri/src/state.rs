@@ -145,10 +145,37 @@ pub fn start_recording(app: &AppHandle) -> Result<(), String> {
     // Emit phase change to frontend
     let _ = app.emit(EVENT_PHASE_CHANGED, AppPhase::Recording);
 
-    // Show recording overlay
+    // Show recording overlay (positioned on cursor screen)
     if let Some(window) = app.get_webview_window("recording-overlay") {
+        position_overlay_on_cursor_screen(&window);
         let _ = window.show();
+        let _ = window.set_ignore_cursor_events(true);
     }
+
+    // Start audio level monitoring at ~30fps (matching AppState.swift:217-228)
+    // We clone the Arc-wrapped state directly so we don't hold State borrows across awaits.
+    let level_arc = {
+        let audio = app.state::<AudioState>();
+        std::sync::Arc::clone(&audio.level)
+    };
+    let is_rec_arc = {
+        let audio = app.state::<AudioState>();
+        std::sync::Arc::clone(&audio.is_recording)
+    };
+    let app_for_level = app.clone();
+    tauri::async_runtime::spawn(async move {
+        use std::sync::atomic::Ordering;
+        loop {
+            if !is_rec_arc.load(Ordering::Relaxed) {
+                break;
+            }
+
+            let level = f32::from_bits(level_arc.load(Ordering::Relaxed));
+            let _ = app_for_level.emit("audio-level", level);
+
+            tokio::time::sleep(std::time::Duration::from_millis(33)).await; // ~30fps
+        }
+    });
 
     tracing::info!("Recording started");
     Ok(())
@@ -212,6 +239,7 @@ pub fn stop_and_transcribe(app: &AppHandle) -> Result<(), String> {
         coord.phase = AppPhase::Processing;
     }
     let _ = app.emit(EVENT_PHASE_CHANGED, AppPhase::Processing);
+    let _ = app.emit("overlay-mode", "processing");
 
     // Stop audio recording
     let audio_path;
@@ -317,10 +345,18 @@ pub fn stop_and_transcribe(app: &AppHandle) -> Result<(), String> {
 
     let _ = app.emit(EVENT_PHASE_CHANGED, AppPhase::Idle);
 
-    // Hide recording overlay (with brief "ready" delay handled by frontend)
-    if let Some(window) = app.get_webview_window("recording-overlay") {
-        let _ = window.hide();
-    }
+    // Show "ready" overlay briefly, then hide (matching RecordingOverlayController:169-178)
+    let _ = app.emit("overlay-mode", "ready");
+
+    let auto_paste_clone = auto_paste;
+    let app_hide = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let delay_ms = if auto_paste_clone { 500 } else { 1000 };
+        tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
+        if let Some(window) = app_hide.get_webview_window("recording-overlay") {
+            let _ = window.hide();
+        }
+    });
 
     tracing::info!("Transcription flow complete");
     Ok(())
@@ -374,4 +410,20 @@ pub fn setup_hotkey_listeners(app: &AppHandle) -> Result<(), String> {
 
     tracing::info!("Hotkey listeners set up");
     Ok(())
+}
+
+/// Position the overlay window centered on the screen containing the cursor.
+/// Matches RecordingOverlay.swift:32-37.
+fn position_overlay_on_cursor_screen(window: &tauri::WebviewWindow) {
+    // Try to get cursor position and center the overlay on that screen
+    if let Ok(cursor_pos) = window.cursor_position() {
+        let width = 380.0;
+        let height = 220.0;
+        let x = cursor_pos.x - width / 2.0;
+        let y = cursor_pos.y - height / 2.0;
+        let _ = window.set_position(tauri::Position::Logical(tauri::LogicalPosition::new(
+            x.max(0.0),
+            y.max(0.0),
+        )));
+    }
 }

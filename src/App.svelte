@@ -2,6 +2,7 @@
   import "./app.css";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
   import MenuBarPanel from "./components/MenuBarPanel.svelte";
+  import RecordingOverlay from "./overlay/RecordingOverlay.svelte";
 
   const label = getCurrentWebviewWindow().label;
 </script>
@@ -9,9 +10,7 @@
 {#if label === "main"}
   <MenuBarPanel />
 {:else if label === "recording-overlay"}
-  <div class="p-4">
-    <p class="text-sm text-gray-400">Recording overlay</p>
-  </div>
+  <RecordingOverlay />
 {:else if label === "switch-overlay"}
   <div class="p-4">
     <p class="text-sm text-gray-400">Switch overlay</p>
