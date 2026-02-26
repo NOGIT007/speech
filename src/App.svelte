@@ -1,14 +1,13 @@
 <script lang="ts">
   import "./app.css";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+  import MenuBarPanel from "./components/MenuBarPanel.svelte";
 
   const label = getCurrentWebviewWindow().label;
 </script>
 
 {#if label === "main"}
-  <div class="p-4">
-    <p class="text-sm text-gray-400">Speech v3 — menu bar panel</p>
-  </div>
+  <MenuBarPanel />
 {:else if label === "recording-overlay"}
   <div class="p-4">
     <p class="text-sm text-gray-400">Recording overlay</p>

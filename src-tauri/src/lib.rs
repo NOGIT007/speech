@@ -1,5 +1,6 @@
 pub mod commands;
 pub mod managers;
+pub mod tray;
 
 use tauri::Manager;
 
@@ -36,6 +37,9 @@ pub fn run() {
             if let Some(window) = app.get_webview_window("switch-overlay") {
                 let _ = window.hide();
             }
+
+            // Set up system tray
+            tray::setup_tray(app.handle())?;
 
             tracing::info!("Speech v3.0.0 started");
             Ok(())
