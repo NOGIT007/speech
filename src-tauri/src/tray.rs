@@ -14,9 +14,10 @@ pub enum TrayIconState {
 
 /// Set up the system tray icon with click handler to toggle the menu bar panel.
 pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
-    // Build a right-click context menu with Quit
+    // Build a right-click context menu with Settings and Quit
+    let settings_item = MenuItem::with_id(app, "settings", "Settings...", true, None::<&str>)?;
     let quit_item = MenuItem::with_id(app, "quit", "Quit Speech", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&quit_item])?;
+    let menu = Menu::with_items(app, &[&settings_item, &quit_item])?;
 
     let icon = app
         .default_window_icon()
@@ -30,6 +31,14 @@ pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
+            "settings" => {
+                let app = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    if let Err(e) = crate::commands::settings::open_settings(app).await {
+                        tracing::error!("Failed to open settings: {}", e);
+                    }
+                });
+            }
             "quit" => {
                 app.exit(0);
             }
