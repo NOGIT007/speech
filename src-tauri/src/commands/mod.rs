@@ -1,4 +1,5 @@
 pub mod audio;
+pub mod model;
 
 /// Placeholder command to verify Tauri IPC works.
 #[tauri::command]

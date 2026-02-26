@@ -1,10 +1,15 @@
 pub mod commands;
 pub mod managers;
+pub mod text_cleaner;
 pub mod tray;
 
+use std::sync::Mutex;
 use tauri::Manager;
 
+use commands::model::{ModelState, TranscriptionState};
 use managers::audio::AudioState;
+use managers::model::ModelManager;
+use managers::transcription::TranscriptionManager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -12,6 +17,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .manage(AudioState::new())
+        .manage(TranscriptionState(Mutex::new(TranscriptionManager::new())))
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
@@ -41,6 +47,13 @@ pub fn run() {
                 let _ = window.hide();
             }
 
+            // Initialize model manager with app data directory
+            let app_data_dir = app
+                .path()
+                .app_data_dir()
+                .expect("failed to get app data dir");
+            app.manage(ModelState(Mutex::new(ModelManager::new(app_data_dir))));
+
             // Set up system tray
             tray::setup_tray(app.handle())?;
 
@@ -52,6 +65,9 @@ pub fn run() {
             commands::audio::start_recording,
             commands::audio::stop_recording,
             commands::audio::get_audio_level,
+            commands::model::list_models,
+            commands::model::delete_model,
+            commands::model::get_supported_languages,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Speech");
