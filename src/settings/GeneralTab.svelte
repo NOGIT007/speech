@@ -41,24 +41,44 @@
     }
   }
 
-  function toggleLaunchAtLogin() {
+  async function toggleLaunchAtLogin() {
+    const prev = launchAtLogin;
     launchAtLogin = !launchAtLogin;
-    updateSetting("launchAtLogin", launchAtLogin);
+    try {
+      await updateSetting("launchAtLogin", launchAtLogin);
+    } catch {
+      launchAtLogin = prev;
+    }
   }
 
-  function toggleAutoPaste() {
+  async function toggleAutoPaste() {
+    const prev = autoPaste;
     autoPaste = !autoPaste;
-    updateSetting("autoPaste", autoPaste);
+    try {
+      await updateSetting("autoPaste", autoPaste);
+    } catch {
+      autoPaste = prev;
+    }
   }
 
-  function toggleRemoveFillerWords() {
+  async function toggleRemoveFillerWords() {
+    const prev = removeFillerWords;
     removeFillerWords = !removeFillerWords;
-    updateSetting("removeFillerWords", removeFillerWords);
+    try {
+      await updateSetting("removeFillerWords", removeFillerWords);
+    } catch {
+      removeFillerWords = prev;
+    }
   }
 
-  function toggleSwitchHotkeyEnabled() {
+  async function toggleSwitchHotkeyEnabled() {
+    const prev = switchHotkeyEnabled;
     switchHotkeyEnabled = !switchHotkeyEnabled;
-    updateSetting("switchHotkeyEnabled", switchHotkeyEnabled);
+    try {
+      await updateSetting("switchHotkeyEnabled", switchHotkeyEnabled);
+    } catch {
+      switchHotkeyEnabled = prev;
+    }
   }
 
   function onRecordHotkeyChange(shortcut: string) {

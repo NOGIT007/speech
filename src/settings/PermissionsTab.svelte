@@ -21,13 +21,36 @@
   let pollInterval: ReturnType<typeof setInterval> | null = null;
   let granting = $state(false);
 
+  function startPolling() {
+    stopPolling();
+    pollInterval = setInterval(refreshPermissions, 3000);
+  }
+
+  function stopPolling() {
+    if (pollInterval) {
+      clearInterval(pollInterval);
+      pollInterval = null;
+    }
+  }
+
+  function handleVisibility() {
+    if (document.hidden) {
+      stopPolling();
+    } else {
+      refreshPermissions();
+      startPolling();
+    }
+  }
+
   onMount(async () => {
     await refreshPermissions();
-    pollInterval = setInterval(refreshPermissions, 1000);
+    startPolling();
+    document.addEventListener("visibilitychange", handleVisibility);
   });
 
   onDestroy(() => {
-    if (pollInterval) clearInterval(pollInterval);
+    stopPolling();
+    document.removeEventListener("visibilitychange", handleVisibility);
   });
 
   async function refreshPermissions() {

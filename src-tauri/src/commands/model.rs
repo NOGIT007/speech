@@ -162,7 +162,8 @@ async fn download_model_file(
     std::fs::create_dir_all(dest_dir)?;
 
     let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(3600))
+        .connect_timeout(std::time::Duration::from_secs(30))
+        .timeout(std::time::Duration::from_secs(600))
         .build()?;
     let response = client.get(url).send().await?;
 

@@ -55,6 +55,9 @@ fn check_accessibility() -> bool {
             tracing::warn!("Failed to find AXIsProcessTrusted symbol");
             return false;
         }
+        // SAFETY: AXIsProcessTrusted has signature `() -> Boolean` (u8).
+        // The symbol is resolved via dlsym from ApplicationServices framework,
+        // and we verified it is non-null above.
         let func: unsafe extern "C" fn() -> u8 = std::mem::transmute(sym);
         let result = func();
         tracing::info!("AXIsProcessTrusted() raw = {}", result);
@@ -79,6 +82,9 @@ fn check_input_monitoring() -> bool {
             tracing::warn!("Failed to find IOHIDCheckAccess symbol");
             return false;
         }
+        // SAFETY: IOHIDCheckAccess has signature `(uint32_t) -> uint32_t`.
+        // The symbol is resolved via dlsym from IOKit framework,
+        // and we verified it is non-null above. Argument 1 = kIOHIDRequestTypeListenEvent.
         let func: unsafe extern "C" fn(u32) -> u32 = std::mem::transmute(sym);
         let result = func(1);
         tracing::info!("IOHIDCheckAccess(1) raw = {} (0=granted)", result);

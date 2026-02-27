@@ -20,7 +20,7 @@
     try {
       appVersion = await getVersion();
     } catch {
-      appVersion = "3.1.0";
+      appVersion = "unknown";
     }
     try {
       const settings = (await invoke("get_settings")) as Settings;

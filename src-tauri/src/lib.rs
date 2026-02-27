@@ -95,11 +95,11 @@ pub fn run() {
                 tracing::error!("Failed to set up hotkey listeners: {}", e);
             }
 
-            tracing::info!("Speech v3.0.0 started");
+            let version = app.config().version.clone().unwrap_or_default();
+            tracing::info!("Speech v{} started", version);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            commands::greet,
             commands::audio::start_recording,
             commands::audio::stop_recording,
             commands::audio::get_audio_level,

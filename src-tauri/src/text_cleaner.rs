@@ -1,41 +1,53 @@
 use regex::Regex;
+use std::sync::LazyLock;
+
+struct FillerPatterns {
+    phrases: Vec<Regex>,
+    words: Vec<Regex>,
+    spaces: Regex,
+}
+
+static FILLER_PATTERNS: LazyLock<FillerPatterns> = LazyLock::new(|| {
+    let phrases = ["you know", "i mean", "sort of", "kind of"]
+        .iter()
+        .map(|p| Regex::new(&format!(r"(?i)\b{}\b", regex::escape(p))).unwrap())
+        .collect();
+
+    let words = ["um", "uh", "hmm", "hm", "ah", "er"]
+        .iter()
+        .map(|w| Regex::new(&format!(r"(?i)\b{}\b", regex::escape(w))).unwrap())
+        .collect();
+
+    let spaces = Regex::new(r"\s{2,}").unwrap();
+
+    FillerPatterns {
+        phrases,
+        words,
+        spaces,
+    }
+});
 
 /// Clean transcribed text by removing filler words and phrases.
 /// Port of TextCleaner.swift:4-48.
 pub fn clean(text: &str) -> String {
+    let patterns = &*FILLER_PATTERNS;
     let mut result = text.to_string();
 
     // Remove filler phrases first (multi-word, case-insensitive, word boundaries)
-    // Matching TextCleaner.swift:16-23
-    let filler_phrases = ["you know", "i mean", "sort of", "kind of"];
-    for phrase in &filler_phrases {
-        let pattern = format!(r"(?i)\b{}\b", regex::escape(phrase));
-        if let Ok(re) = Regex::new(&pattern) {
-            result = re.replace_all(&result, "").to_string();
-        }
+    for re in &patterns.phrases {
+        result = re.replace_all(&result, "").to_string();
     }
 
     // Remove single filler words (case-insensitive, word boundaries)
-    // Matching TextCleaner.swift:26-33
-    let filler_words = ["um", "uh", "hmm", "hm", "ah", "er"];
-    for word in &filler_words {
-        let pattern = format!(r"(?i)\b{}\b", regex::escape(word));
-        if let Ok(re) = Regex::new(&pattern) {
-            result = re.replace_all(&result, "").to_string();
-        }
+    for re in &patterns.words {
+        result = re.replace_all(&result, "").to_string();
     }
 
     // Collapse stutter repetitions: "I I I think" -> "I think"
-    // Matching TextCleaner.swift:36-39
-    // Note: Rust's regex crate doesn't support backreferences,
-    // so we implement this manually by checking consecutive words.
     result = collapse_stutters(&result);
 
     // Collapse multiple spaces and trim
-    // Matching TextCleaner.swift:43-44
-    if let Ok(spaces_re) = Regex::new(r"\s{2,}") {
-        result = spaces_re.replace_all(&result, " ").to_string();
-    }
+    result = patterns.spaces.replace_all(&result, " ").to_string();
     result = result.trim().to_string();
 
     result
