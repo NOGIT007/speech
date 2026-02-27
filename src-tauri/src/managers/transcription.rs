@@ -3,14 +3,12 @@ use std::path::PathBuf;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use transcribe_rs::{
-    engines::{
-        parakeet::{
-            ParakeetEngine, ParakeetInferenceParams, ParakeetModelParams, TimestampGranularity,
-        },
-        whisper::{WhisperEngine, WhisperInferenceParams},
+    engines::parakeet::{
+        ParakeetEngine, ParakeetInferenceParams, ParakeetModelParams, TimestampGranularity,
     },
     TranscriptionEngine,
 };
+use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
 use crate::managers::model::EngineType;
 
@@ -25,11 +23,11 @@ pub struct TranscriptionResult {
 
 /// Currently loaded engine variant.
 enum LoadedEngine {
-    Whisper(WhisperEngine),
+    Whisper(WhisperContext),
     Parakeet(ParakeetEngine),
 }
 
-/// Manages transcription using transcribe-rs (Whisper + Parakeet).
+/// Manages transcription using whisper-rs (Whisper) and transcribe-rs (Parakeet).
 pub struct TranscriptionManager {
     loaded_model_id: Option<String>,
     loaded_engine_type: Option<EngineType>,
@@ -46,9 +44,8 @@ impl TranscriptionManager {
     }
 
     /// Load a model for transcription.
-    /// `model_path` is the model directory.
-    /// For Whisper: scans for .bin file and loads via WhisperEngine.
-    /// For Parakeet: loads directory with ONNX files via ParakeetEngine.
+    /// For Whisper: scans for .bin/.gguf file and loads via whisper-rs.
+    /// For Parakeet: loads directory with ONNX files via transcribe-rs.
     pub fn load_model(
         &mut self,
         model_id: &str,
@@ -73,11 +70,14 @@ impl TranscriptionManager {
                     })?;
                 tracing::info!("Found whisper model file: {}", model_file.display());
 
-                let mut engine = WhisperEngine::new();
-                engine
-                    .load_model(&model_file)
-                    .map_err(|e| anyhow::anyhow!("Failed to load Whisper model: {}", e))?;
-                LoadedEngine::Whisper(engine)
+                let ctx_params = WhisperContextParameters::default();
+                let ctx = WhisperContext::new_with_params(
+                    model_file.to_str().unwrap_or_default(),
+                    ctx_params,
+                )
+                .map_err(|e| anyhow::anyhow!("Failed to load Whisper model: {}", e))?;
+
+                LoadedEngine::Whisper(ctx)
             }
             EngineType::Parakeet => {
                 // Parakeet expects the directory containing ONNX files.
@@ -194,23 +194,40 @@ impl TranscriptionManager {
 
         // Dispatch transcription to the appropriate engine
         let text = match engine {
-            LoadedEngine::Whisper(whisper) => {
-                let whisper_language = if language == "auto" {
-                    None
+            LoadedEngine::Whisper(ctx) => {
+                let mut state = ctx
+                    .create_state()
+                    .map_err(|e| anyhow::anyhow!("Failed to create whisper state: {}", e))?;
+
+                let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
+
+                if language == "auto" {
+                    params.set_language(Some("auto"));
                 } else {
-                    Some(language.to_string())
-                };
+                    params.set_language(Some(language));
+                }
 
-                let params = WhisperInferenceParams {
-                    language: whisper_language,
-                    ..Default::default()
-                };
+                // Disable printing to stdout
+                params.set_print_special(false);
+                params.set_print_progress(false);
+                params.set_print_realtime(false);
+                params.set_print_timestamps(false);
 
-                let result = whisper
-                    .transcribe_samples(samples, Some(params))
+                state
+                    .full(params, &samples)
                     .map_err(|e| anyhow::anyhow!("Whisper transcription failed: {}", e))?;
 
-                result.text
+                let num_segments = state.full_n_segments();
+
+                let mut text = String::new();
+                for i in 0..num_segments {
+                    if let Some(segment) = state.get_segment(i) {
+                        if let Ok(s) = segment.to_str_lossy() {
+                            text.push_str(&s);
+                        }
+                    }
+                }
+                text
             }
             LoadedEngine::Parakeet(parakeet) => {
                 let params = ParakeetInferenceParams {
@@ -273,7 +290,9 @@ impl TranscriptionManager {
         // Unload engine-specific resources
         if let Some(engine) = self.engine.as_mut() {
             match engine {
-                LoadedEngine::Whisper(e) => e.unload_model(),
+                LoadedEngine::Whisper(_) => {
+                    // WhisperContext is dropped automatically
+                }
                 LoadedEngine::Parakeet(e) => e.unload_model(),
             }
         }

@@ -432,8 +432,8 @@ pub fn setup_hotkey_listeners(app: &AppHandle) -> Result<(), String> {
 fn position_overlay_on_cursor_screen(window: &tauri::WebviewWindow) {
     // Try to get cursor position and center the overlay on that screen
     if let Ok(cursor_pos) = window.cursor_position() {
-        let width = 380.0;
-        let height = 220.0;
+        let width = 460.0;
+        let height = 280.0;
         let x = cursor_pos.x - width / 2.0;
         let y = cursor_pos.y - height / 2.0;
         let _ = window.set_position(tauri::Position::Logical(tauri::LogicalPosition::new(

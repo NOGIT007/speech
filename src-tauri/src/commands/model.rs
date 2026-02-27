@@ -161,7 +161,9 @@ async fn download_model_file(
     // Create the model directory
     std::fs::create_dir_all(dest_dir)?;
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(3600))
+        .build()?;
     let response = client.get(url).send().await?;
 
     if !response.status().is_success() {
@@ -208,6 +210,15 @@ async fn download_model_file(
                 "progress": 1.0,
             }),
         );
+
+        // Validate download completeness
+        if total_size > 0 && downloaded != total_size {
+            return Err(format!(
+                "Download incomplete: got {} of {} bytes",
+                downloaded, total_size
+            )
+            .into());
+        }
 
         // Emit extracting event
         let _ = app.emit(
@@ -269,6 +280,15 @@ async fn download_model_file(
                 "progress": 1.0,
             }),
         );
+
+        // Validate download completeness
+        if total_size > 0 && downloaded != total_size {
+            return Err(format!(
+                "Download incomplete: got {} of {} bytes",
+                downloaded, total_size
+            )
+            .into());
+        }
     }
 
     Ok(())
