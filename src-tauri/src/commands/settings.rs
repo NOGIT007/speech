@@ -25,8 +25,8 @@ pub fn load_selected_model(app: &tauri::AppHandle) {
         .and_then(|v| v.as_str().map(String::from))
         .unwrap_or_else(|| "whisper-small".into());
 
-    // Get model path from ModelManager (scoped to release State borrow)
-    let model_path = {
+    // Get model path and engine type from ModelManager (scoped to release State borrow)
+    let (model_path, engine_type) = {
         let model_mgr = app.state::<ModelState>();
         let mgr = match model_mgr.0.lock() {
             Ok(m) => m,
@@ -85,7 +85,11 @@ pub fn load_selected_model(app: &tauri::AppHandle) {
             }
         }
 
-        mgr.get_model_path(&model_id)
+        let engine_type = mgr
+            .get_model(&model_id)
+            .map(|m| m.engine)
+            .unwrap_or(crate::managers::model::EngineType::Whisper);
+        (mgr.get_model_path(&model_id), engine_type)
     };
 
     // Load into TranscriptionManager (scoped to release State borrow)
@@ -93,7 +97,7 @@ pub fn load_selected_model(app: &tauri::AppHandle) {
         let transcription = app.state::<TranscriptionState>();
         match transcription.0.lock() {
             Ok(mut tm) => {
-                if let Err(e) = tm.load_model(&model_id, model_path) {
+                if let Err(e) = tm.load_model(&model_id, model_path, engine_type) {
                     tracing::error!("Failed to load model '{}': {}", model_id, e);
                 } else {
                     tracing::info!("Model '{}' loaded successfully", model_id);

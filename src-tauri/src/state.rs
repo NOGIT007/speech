@@ -260,10 +260,10 @@ pub fn stop_and_transcribe(app: &AppHandle) -> Result<(), String> {
         auto_paste = coord.auto_paste;
     }
 
-    // Perform transcription (currently a stub, will be wired to transcribe-rs)
+    // Perform transcription using the loaded engine
     let result = {
         let ts = app.state::<crate::commands::model::TranscriptionState>();
-        let ts = ts.0.lock().map_err(|e| e.to_string())?;
+        let mut ts = ts.0.lock().map_err(|e| e.to_string())?;
         match ts.transcribe(&audio_path, &language) {
             Ok(r) => r,
             Err(e) => {

@@ -7,7 +7,7 @@ pub mod tray;
 use std::sync::Mutex;
 use tauri::Manager;
 
-use commands::model::{ModelState, TranscriptionState};
+use commands::model::{DownloadTrackerState, ModelState, TranscriptionState};
 use managers::audio::AudioState;
 use managers::model::ModelManager;
 use managers::paste::PasteManager;
@@ -21,6 +21,7 @@ pub fn run() {
     tauri::Builder::default()
         .manage(AudioState::new())
         .manage(TranscriptionState(Mutex::new(TranscriptionManager::new())))
+        .manage(DownloadTrackerState(Mutex::new(std::collections::HashSet::new())))
         .manage(CoordinatorState(Mutex::new(RecordingCoordinator::new())))
         .manage(PasteState(Mutex::new(PasteManager::new())))
         .plugin(tauri_plugin_store::Builder::default().build())

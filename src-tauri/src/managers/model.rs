@@ -10,8 +10,6 @@ use serde::{Deserialize, Serialize};
 pub enum EngineType {
     Whisper,
     Parakeet,
-    Moonshine,
-    SenseVoice,
 }
 
 /// A model available for transcription.
@@ -25,12 +23,13 @@ pub struct ModelInfo {
     pub display_name: String,
     pub size: String,
     pub languages: Vec<String>,
-    #[serde(skip)]
-    pub repo_id: String,
+    /// Direct download URL for the model file or archive.
+    pub download_url: String,
+    /// Whether the model is a directory (tar.gz archive) rather than a single file.
+    pub is_directory: bool,
 }
 
 /// Supported transcription languages.
-/// Matches AppState.swift:481-523.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Language {
     pub code: String,
@@ -53,28 +52,10 @@ impl ModelManager {
     }
 
     /// Build the initial model registry.
-    /// Includes Whisper, Moonshine, Parakeet, and SenseVoice engines.
+    /// Includes Whisper (GGML) and Parakeet V3 (ONNX) engines.
     fn build_registry() -> Vec<ModelInfo> {
         vec![
-            // ── Whisper models (ggerganov/whisper.cpp GGML) ──
-            ModelInfo {
-                id: "whisper-tiny".into(),
-                engine: EngineType::Whisper,
-                name: "tiny".into(),
-                display_name: "Whisper Tiny (~75 MB) - Fastest".into(),
-                size: "75MB".into(),
-                languages: Self::whisper_languages(),
-                repo_id: "ggerganov/whisper.cpp".into(),
-            },
-            ModelInfo {
-                id: "whisper-base".into(),
-                engine: EngineType::Whisper,
-                name: "base".into(),
-                display_name: "Whisper Base (~142 MB) - Balanced".into(),
-                size: "142MB".into(),
-                languages: Self::whisper_languages(),
-                repo_id: "ggerganov/whisper.cpp".into(),
-            },
+            // -- Whisper models (ggerganov/whisper.cpp GGML) --
             ModelInfo {
                 id: "whisper-small".into(),
                 engine: EngineType::Whisper,
@@ -82,7 +63,8 @@ impl ModelManager {
                 display_name: "Whisper Small (~466 MB) - Accurate".into(),
                 size: "466MB".into(),
                 languages: Self::whisper_languages(),
-                repo_id: "ggerganov/whisper.cpp".into(),
+                download_url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin".into(),
+                is_directory: false,
             },
             ModelInfo {
                 id: "whisper-medium".into(),
@@ -91,7 +73,8 @@ impl ModelManager {
                 display_name: "Whisper Medium (~1.5 GB) - High Accuracy".into(),
                 size: "1.5GB".into(),
                 languages: Self::whisper_languages(),
-                repo_id: "ggerganov/whisper.cpp".into(),
+                download_url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin".into(),
+                is_directory: false,
             },
             ModelInfo {
                 id: "whisper-large-v3-turbo".into(),
@@ -100,7 +83,8 @@ impl ModelManager {
                 display_name: "Whisper Large v3 Turbo (~1.1 GB) - Fast & Accurate".into(),
                 size: "1.1GB".into(),
                 languages: Self::whisper_languages(),
-                repo_id: "ggerganov/whisper.cpp".into(),
+                download_url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin".into(),
+                is_directory: false,
             },
             ModelInfo {
                 id: "whisper-large-v3".into(),
@@ -109,12 +93,21 @@ impl ModelManager {
                 display_name: "Whisper Large v3 (~1.6 GB) - Best Accuracy".into(),
                 size: "1.6GB".into(),
                 languages: Self::whisper_languages(),
-                repo_id: "ggerganov/whisper.cpp".into(),
+                download_url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin".into(),
+                is_directory: false,
             },
 
-            // NOTE: Moonshine, Parakeet, and SenseVoice are not yet supported
-            // by the transcription engine (whisper-rs only). They will be added
-            // back when their engines are implemented.
+            // -- Parakeet V3 (NVIDIA ONNX, int8 quantized) --
+            ModelInfo {
+                id: "parakeet-v3".into(),
+                engine: EngineType::Parakeet,
+                name: "v3".into(),
+                display_name: "Parakeet V3 (~478 MB) - Fast & Multilingual".into(),
+                size: "478MB".into(),
+                languages: Self::parakeet_v3_languages(),
+                download_url: "https://blob.handy.computer/models/parakeet-tdt_ctc-110m-onnx-int8.tar.gz".into(),
+                is_directory: true,
+            },
         ]
     }
 
@@ -129,11 +122,6 @@ impl ModelManager {
         .collect()
     }
 
-    /// English-only language list (Moonshine, Parakeet V2).
-    fn english_only() -> Vec<String> {
-        vec!["en".to_string()]
-    }
-
     /// Parakeet V3's 25 European language list.
     fn parakeet_v3_languages() -> Vec<String> {
         vec![
@@ -143,14 +131,6 @@ impl ModelManager {
         .into_iter()
         .map(String::from)
         .collect()
-    }
-
-    /// SenseVoice languages (CJK-focused).
-    fn sensevoice_languages() -> Vec<String> {
-        vec!["zh", "en", "ja", "ko", "yue"]
-            .into_iter()
-            .map(String::from)
-            .collect()
     }
 
     /// Get all supported languages with display names.
@@ -173,7 +153,6 @@ impl ModelManager {
             Language { code: "no".into(), name: "Norwegian".into() },
             Language { code: "sv".into(), name: "Swedish".into() },
             Language { code: "fi".into(), name: "Finnish".into() },
-            Language { code: "yue".into(), name: "Cantonese".into() },
             Language { code: "cs".into(), name: "Czech".into() },
             Language { code: "uk".into(), name: "Ukrainian".into() },
             Language { code: "hu".into(), name: "Hungarian".into() },
@@ -212,10 +191,20 @@ impl ModelManager {
         if !model_dir.exists() {
             return false;
         }
-        // Check for actual model files inside
-        if let Ok(entries) = std::fs::read_dir(&model_dir) {
+        // Check for actual model files inside (recursively for directory models)
+        Self::has_model_file(&model_dir)
+    }
+
+    /// Recursively check if a directory contains a model file (.bin, .gguf, .onnx).
+    fn has_model_file(dir: &std::path::Path) -> bool {
+        if let Ok(entries) = std::fs::read_dir(dir) {
             for entry in entries.flatten() {
-                if let Some(ext) = entry.path().extension().and_then(|e| e.to_str()) {
+                let path = entry.path();
+                if path.is_dir() {
+                    if Self::has_model_file(&path) {
+                        return true;
+                    }
+                } else if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
                     if ext == "bin" || ext == "gguf" || ext == "onnx" {
                         return true;
                     }
@@ -235,44 +224,11 @@ impl ModelManager {
         self.registry.iter().find(|m| m.id == model_id)
     }
 
-    /// Get the download URL for a model file from HuggingFace.
-    pub fn get_download_url(&self, model: &ModelInfo) -> String {
-        match model.engine {
-            EngineType::Whisper => {
-                // ggerganov/whisper.cpp GGML binaries
-                format!(
-                    "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-{}.bin",
-                    model.name
-                )
-            }
-            EngineType::Moonshine => {
-                // UsefulSensors GGUF quantised models
-                format!(
-                    "https://huggingface.co/{}/resolve/main/moonshine-{}-q8_0.gguf",
-                    model.repo_id, model.name
-                )
-            }
-            EngineType::Parakeet => {
-                // NVIDIA Parakeet ONNX models
-                format!(
-                    "https://huggingface.co/{}/resolve/main/model.onnx",
-                    model.repo_id
-                )
-            }
-            EngineType::SenseVoice => {
-                // FunAudioLLM SenseVoice ONNX
-                format!(
-                    "https://huggingface.co/{}/resolve/main/model.onnx",
-                    model.repo_id
-                )
-            }
-        }
-    }
-
     /// List models grouped by engine type.
     pub fn list_models_grouped(&self) -> Vec<EngineGroup> {
         let engines = [
             EngineType::Whisper,
+            EngineType::Parakeet,
         ];
 
         engines
@@ -303,9 +259,7 @@ impl ModelManager {
     pub fn engine_display_name(engine: EngineType) -> &'static str {
         match engine {
             EngineType::Whisper => "Whisper",
-            EngineType::Moonshine => "Moonshine",
             EngineType::Parakeet => "Parakeet",
-            EngineType::SenseVoice => "SenseVoice",
         }
     }
 
@@ -313,9 +267,7 @@ impl ModelManager {
     pub fn engine_description(engine: EngineType) -> &'static str {
         match engine {
             EngineType::Whisper => "OpenAI - Multilingual, most versatile",
-            EngineType::Moonshine => "Useful Sensors - English-only, ultra-fast on device",
-            EngineType::Parakeet => "NVIDIA - Fast CTC-based recognition",
-            EngineType::SenseVoice => "FunAudioLLM - Chinese/Japanese/Korean/English",
+            EngineType::Parakeet => "NVIDIA - Fast CTC-based, 25 European languages",
         }
     }
 

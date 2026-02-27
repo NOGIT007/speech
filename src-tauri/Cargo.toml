@@ -24,7 +24,13 @@ tauri-plugin-autostart = "2"
 tauri-plugin-macos-permissions = "2.3"
 
 # Transcription
-whisper-rs = { version = "0.15", features = ["metal"] }
+transcribe-rs = { version = "0.2.5", features = ["whisper", "parakeet"] }
+# Pin ort to rc.10 — transcribe-rs 0.2.5 is incompatible with rc.11+
+ort = "=2.0.0-rc.10"
+
+# Archive extraction (for tar.gz ONNX model bundles)
+tar = "0.4"
+flate2 = "1"
 
 # Audio
 cpal = "0.16"

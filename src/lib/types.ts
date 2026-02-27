@@ -2,7 +2,7 @@
 export type AppPhase = "idle" | "recording" | "processing";
 
 /** Transcription engine types */
-export type EngineType = "whisper" | "parakeet" | "moonshine" | "sensevoice";
+export type EngineType = "whisper" | "parakeet";
 
 /** A model available for transcription */
 export interface Model {

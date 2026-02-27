@@ -10,6 +10,8 @@
     displayName: string;
     size: string;
     languages: string[];
+    downloadUrl: string;
+    isDirectory: boolean;
     downloaded: boolean;
     active: boolean;
   }
@@ -25,8 +27,12 @@
   let selectedModelId = $state("whisper-small");
   let downloadProgress = $state<Record<string, number>>({});
   let downloadError = $state<string | null>(null);
-  let isDownloading = $state(false);
-  let expandedEngines = $state<Record<string, boolean>>({ whisper: true });
+  let downloadingModels = $state<Record<string, boolean>>({});
+  let extractingModels = $state<Record<string, boolean>>({});
+  let expandedEngines = $state<Record<string, boolean>>({
+    whisper: true,
+    parakeet: true,
+  });
   let unlisteners: (() => void)[] = [];
 
   onMount(async () => {
@@ -47,19 +53,53 @@
     const u2 = await listen<{ modelId: string }>(
       "model-download-complete",
       async (event) => {
-        isDownloading = false;
-        delete downloadProgress[event.payload.modelId];
+        const mid = event.payload.modelId;
+        delete downloadingModels[mid];
+        downloadingModels = { ...downloadingModels };
+        delete downloadProgress[mid];
         downloadProgress = { ...downloadProgress };
+        delete extractingModels[mid];
+        extractingModels = { ...extractingModels };
         await loadModels();
       },
     );
     unlisteners.push(u2);
 
-    const u3 = await listen<string>("model-download-error", (event) => {
-      isDownloading = false;
-      downloadError = event.payload;
-    });
+    const u3 = await listen<{ modelId: string; error: string }>(
+      "model-download-error",
+      (event) => {
+        const mid = event.payload.modelId;
+        delete downloadingModels[mid];
+        downloadingModels = { ...downloadingModels };
+        delete downloadProgress[mid];
+        downloadProgress = { ...downloadProgress };
+        delete extractingModels[mid];
+        extractingModels = { ...extractingModels };
+        downloadError = event.payload.error;
+      },
+    );
     unlisteners.push(u3);
+
+    // Listen for extraction events (tar.gz directory models)
+    const u4 = await listen<{ modelId: string }>(
+      "model-extracting",
+      (event) => {
+        extractingModels = {
+          ...extractingModels,
+          [event.payload.modelId]: true,
+        };
+      },
+    );
+    unlisteners.push(u4);
+
+    const u5 = await listen<{ modelId: string }>(
+      "model-extraction-complete",
+      (event) => {
+        delete extractingModels[event.payload.modelId];
+        extractingModels = { ...extractingModels };
+      },
+    );
+    unlisteners.push(u5);
   });
 
   onDestroy(() => {
@@ -99,16 +139,27 @@
     await loadModels();
   }
 
-  async function downloadModel() {
-    if (isDownloading) return;
+  async function downloadOrLoadModel() {
+    const model = getSelectedModel();
+    if (!model) return;
 
-    isDownloading = true;
+    // If already downloaded, just load (select) it — don't re-download
+    if (model.downloaded) {
+      await selectModel(model.id);
+      return;
+    }
+
+    // Skip if this specific model is already downloading
+    if (downloadingModels[model.id]) return;
+
+    downloadingModels = { ...downloadingModels, [model.id]: true };
     downloadError = null;
 
     try {
-      await invoke("download_model", { modelId: selectedModelId });
+      await invoke("download_model", { modelId: model.id });
     } catch (e) {
-      isDownloading = false;
+      delete downloadingModels[model.id];
+      downloadingModels = { ...downloadingModels };
       downloadError = String(e);
     }
   }
@@ -123,7 +174,10 @@
   }
 
   function toggleEngine(engine: string) {
-    expandedEngines = { ...expandedEngines, [engine]: !expandedEngines[engine] };
+    expandedEngines = {
+      ...expandedEngines,
+      [engine]: !expandedEngines[engine],
+    };
   }
 
   function getSelectedModel(): ModelStatus | undefined {
@@ -135,9 +189,9 @@
   }
 
   function canDownload(): boolean {
-    if (isDownloading) return false;
     const model = getSelectedModel();
     if (!model) return false;
+    if (downloadingModels[model.id]) return false;
     if (model.downloaded && model.active) return false;
     return true;
   }
@@ -145,6 +199,7 @@
   function buttonTitle(): string {
     const model = getSelectedModel();
     if (!model) return "Select a model";
+    if (downloadingModels[model.id]) return "Downloading...";
     if (model.downloaded && model.active) return "Model Ready";
     if (model.downloaded) return `Load ${model.displayName.split(" (")[0]}`;
     return `Download ${model.displayName.split(" (")[0]}`;
@@ -152,6 +207,10 @@
 
   function getProgress(modelId: string): number | undefined {
     return downloadProgress[modelId];
+  }
+
+  function isExtracting(modelId: string): boolean {
+    return !!extractingModels[modelId];
   }
 </script>
 
@@ -208,7 +267,11 @@
                 <span class="text-[13px]">{model.displayName}</span>
               </div>
               <div class="flex items-center gap-2 shrink-0">
-                {#if getProgress(model.id) !== undefined}
+                {#if isExtracting(model.id)}
+                  <span class="text-[10px] text-blue-400 animate-pulse"
+                    >Extracting...</span
+                  >
+                {:else if getProgress(model.id) !== undefined}
                   <div
                     class="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden"
                   >
@@ -251,6 +314,18 @@
                       />
                     </svg>
                   </button>
+                {:else if downloadingModels[model.id]}
+                  <div
+                    class="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden"
+                  >
+                    <div
+                      class="h-full bg-blue-500 rounded-full transition-all"
+                      style="width: {(getProgress(model.id) ?? 0) * 100}%"
+                    ></div>
+                  </div>
+                  <span class="text-[10px] text-white/50 w-8 text-right">
+                    {Math.round((getProgress(model.id) ?? 0) * 100)}%
+                  </span>
                 {:else}
                   <span class="text-[10px] text-white/30">Not downloaded</span>
                 {/if}
@@ -291,7 +366,7 @@
         ? 'bg-blue-500 hover:bg-blue-600 text-white'
         : 'bg-white/5 text-white/30 cursor-not-allowed'}"
       disabled={!canDownload()}
-      onclick={downloadModel}
+      onclick={downloadOrLoadModel}
     >
       {buttonTitle()}
     </button>
@@ -299,6 +374,6 @@
 
   <!-- Recommendation -->
   <p class="px-3 text-xs text-white/40">
-    For English, try Moonshine Tiny for speed or Whisper Small for accuracy.
+    Try Parakeet V3 for speed or Whisper Small for accuracy.
   </p>
 </div>
