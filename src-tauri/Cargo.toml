@@ -1,6 +1,6 @@
 [package]
 name = "speech"
-version = "3.0.0"
+version = "3.1.1"
 description = "macOS menu bar app for speech-to-text"
 authors = ["kennetkusk"]
 edition = "2021"
@@ -21,9 +21,10 @@ tauri-plugin-global-shortcut = "2"
 tauri-plugin-shell = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-autostart = "2"
+tauri-plugin-macos-permissions = "2.3"
 
 # Transcription
-# transcribe-rs = "0.2.5"  # TODO: uncomment when wiring transcription
+whisper-rs = { version = "0.15", features = ["metal"] }
 
 # Audio
 cpal = "0.16"
@@ -59,3 +60,4 @@ chrono = { version = "0.4", features = ["serde"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 core-foundation = "0.10"
+libc = "0.2"

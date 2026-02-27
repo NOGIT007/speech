@@ -1905,6 +1905,192 @@
     "permission_sets": {},
     "global_scope_schema": null
   },
+  "macos-permissions": {
+    "default_permission": {
+      "identifier": "default",
+      "description": "Default permissions for the plugin",
+      "permissions": [
+        "allow-check-accessibility-permission",
+        "allow-request-accessibility-permission",
+        "allow-check-full-disk-access-permission",
+        "allow-request-full-disk-access-permission",
+        "allow-check-screen-recording-permission",
+        "allow-request-screen-recording-permission",
+        "allow-check-microphone-permission",
+        "allow-request-microphone-permission",
+        "allow-check-camera-permission",
+        "allow-request-camera-permission",
+        "allow-check-input-monitoring-permission",
+        "allow-request-input-monitoring-permission"
+      ]
+    },
+    "permissions": {
+      "allow-check-accessibility-permission": {
+        "identifier": "allow-check-accessibility-permission",
+        "description": "Enables the check_accessibility_permission command without any pre-configured scope.",
+        "commands": { "allow": ["check_accessibility_permission"], "deny": [] }
+      },
+      "allow-check-camera-permission": {
+        "identifier": "allow-check-camera-permission",
+        "description": "Enables the check_camera_permission command without any pre-configured scope.",
+        "commands": { "allow": ["check_camera_permission"], "deny": [] }
+      },
+      "allow-check-full-disk-access-permission": {
+        "identifier": "allow-check-full-disk-access-permission",
+        "description": "Enables the check_full_disk_access_permission command without any pre-configured scope.",
+        "commands": {
+          "allow": ["check_full_disk_access_permission"],
+          "deny": []
+        }
+      },
+      "allow-check-input-monitoring-permission": {
+        "identifier": "allow-check-input-monitoring-permission",
+        "description": "Enables the check_input_monitoring_permission command without any pre-configured scope.",
+        "commands": {
+          "allow": ["check_input_monitoring_permission"],
+          "deny": []
+        }
+      },
+      "allow-check-microphone-permission": {
+        "identifier": "allow-check-microphone-permission",
+        "description": "Enables the check_microphone_permission command without any pre-configured scope.",
+        "commands": { "allow": ["check_microphone_permission"], "deny": [] }
+      },
+      "allow-check-screen-recording-permission": {
+        "identifier": "allow-check-screen-recording-permission",
+        "description": "Enables the check_screen_recording_permission command without any pre-configured scope.",
+        "commands": {
+          "allow": ["check_screen_recording_permission"],
+          "deny": []
+        }
+      },
+      "allow-request-accessibility-permission": {
+        "identifier": "allow-request-accessibility-permission",
+        "description": "Enables the request_accessibility_permission command without any pre-configured scope.",
+        "commands": {
+          "allow": ["request_accessibility_permission"],
+          "deny": []
+        }
+      },
+      "allow-request-camera-permission": {
+        "identifier": "allow-request-camera-permission",
+        "description": "Enables the request_camera_permission command without any pre-configured scope.",
+        "commands": { "allow": ["request_camera_permission"], "deny": [] }
+      },
+      "allow-request-full-disk-access-permission": {
+        "identifier": "allow-request-full-disk-access-permission",
+        "description": "Enables the request_full_disk_access_permission command without any pre-configured scope.",
+        "commands": {
+          "allow": ["request_full_disk_access_permission"],
+          "deny": []
+        }
+      },
+      "allow-request-input-monitoring-permission": {
+        "identifier": "allow-request-input-monitoring-permission",
+        "description": "Enables the request_input_monitoring_permission command without any pre-configured scope.",
+        "commands": {
+          "allow": ["request_input_monitoring_permission"],
+          "deny": []
+        }
+      },
+      "allow-request-microphone-permission": {
+        "identifier": "allow-request-microphone-permission",
+        "description": "Enables the request_microphone_permission command without any pre-configured scope.",
+        "commands": { "allow": ["request_microphone_permission"], "deny": [] }
+      },
+      "allow-request-screen-recording-permission": {
+        "identifier": "allow-request-screen-recording-permission",
+        "description": "Enables the request_screen_recording_permission command without any pre-configured scope.",
+        "commands": {
+          "allow": ["request_screen_recording_permission"],
+          "deny": []
+        }
+      },
+      "deny-check-accessibility-permission": {
+        "identifier": "deny-check-accessibility-permission",
+        "description": "Denies the check_accessibility_permission command without any pre-configured scope.",
+        "commands": { "allow": [], "deny": ["check_accessibility_permission"] }
+      },
+      "deny-check-camera-permission": {
+        "identifier": "deny-check-camera-permission",
+        "description": "Denies the check_camera_permission command without any pre-configured scope.",
+        "commands": { "allow": [], "deny": ["check_camera_permission"] }
+      },
+      "deny-check-full-disk-access-permission": {
+        "identifier": "deny-check-full-disk-access-permission",
+        "description": "Denies the check_full_disk_access_permission command without any pre-configured scope.",
+        "commands": {
+          "allow": [],
+          "deny": ["check_full_disk_access_permission"]
+        }
+      },
+      "deny-check-input-monitoring-permission": {
+        "identifier": "deny-check-input-monitoring-permission",
+        "description": "Denies the check_input_monitoring_permission command without any pre-configured scope.",
+        "commands": {
+          "allow": [],
+          "deny": ["check_input_monitoring_permission"]
+        }
+      },
+      "deny-check-microphone-permission": {
+        "identifier": "deny-check-microphone-permission",
+        "description": "Denies the check_microphone_permission command without any pre-configured scope.",
+        "commands": { "allow": [], "deny": ["check_microphone_permission"] }
+      },
+      "deny-check-screen-recording-permission": {
+        "identifier": "deny-check-screen-recording-permission",
+        "description": "Denies the check_screen_recording_permission command without any pre-configured scope.",
+        "commands": {
+          "allow": [],
+          "deny": ["check_screen_recording_permission"]
+        }
+      },
+      "deny-request-accessibility-permission": {
+        "identifier": "deny-request-accessibility-permission",
+        "description": "Denies the request_accessibility_permission command without any pre-configured scope.",
+        "commands": {
+          "allow": [],
+          "deny": ["request_accessibility_permission"]
+        }
+      },
+      "deny-request-camera-permission": {
+        "identifier": "deny-request-camera-permission",
+        "description": "Denies the request_camera_permission command without any pre-configured scope.",
+        "commands": { "allow": [], "deny": ["request_camera_permission"] }
+      },
+      "deny-request-full-disk-access-permission": {
+        "identifier": "deny-request-full-disk-access-permission",
+        "description": "Denies the request_full_disk_access_permission command without any pre-configured scope.",
+        "commands": {
+          "allow": [],
+          "deny": ["request_full_disk_access_permission"]
+        }
+      },
+      "deny-request-input-monitoring-permission": {
+        "identifier": "deny-request-input-monitoring-permission",
+        "description": "Denies the request_input_monitoring_permission command without any pre-configured scope.",
+        "commands": {
+          "allow": [],
+          "deny": ["request_input_monitoring_permission"]
+        }
+      },
+      "deny-request-microphone-permission": {
+        "identifier": "deny-request-microphone-permission",
+        "description": "Denies the request_microphone_permission command without any pre-configured scope.",
+        "commands": { "allow": [], "deny": ["request_microphone_permission"] }
+      },
+      "deny-request-screen-recording-permission": {
+        "identifier": "deny-request-screen-recording-permission",
+        "description": "Denies the request_screen_recording_permission command without any pre-configured scope.",
+        "commands": {
+          "allow": [],
+          "deny": ["request_screen_recording_permission"]
+        }
+      }
+    },
+    "permission_sets": {},
+    "global_scope_schema": null
+  },
   "shell": {
     "default_permission": {
       "identifier": "default",

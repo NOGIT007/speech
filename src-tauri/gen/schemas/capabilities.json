@@ -3,7 +3,7 @@
     "identifier": "default",
     "description": "Default capabilities for Speech",
     "local": true,
-    "windows": ["main", "recording-overlay", "switch-overlay"],
+    "windows": ["main", "recording-overlay", "switch-overlay", "settings"],
     "permissions": [
       "core:default",
       "core:window:default",
@@ -18,7 +18,8 @@
       "core:webview:default",
       "store:default",
       "global-shortcut:default",
-      "shell:default"
+      "shell:default",
+      "macos-permissions:default"
     ]
   }
 }

@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/nicegui-org/nicegui/main/nicegui/static/tauri/capability-schema.json",
   "identifier": "default",
   "description": "Default capabilities for Speech",
-  "windows": ["main", "recording-overlay", "switch-overlay"],
+  "windows": ["main", "recording-overlay", "switch-overlay", "settings"],
   "permissions": [
     "core:default",
     "core:window:default",
@@ -17,6 +17,7 @@
     "core:webview:default",
     "store:default",
     "global-shortcut:default",
-    "shell:default"
+    "shell:default",
+    "macos-permissions:default"
   ]
 }

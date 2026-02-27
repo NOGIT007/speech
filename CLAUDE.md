@@ -89,7 +89,7 @@ cd src-tauri && cargo test
 
 ## Releasing
 
-**Current version:** 3.0.0
+**Current version:** 3.1.1
 
 ### Release Workflow
 

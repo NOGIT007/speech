@@ -28,14 +28,28 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         // TODO: Enable updater once signing keys are configured
         // .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_macos_permissions::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
         .setup(|app| {
-            // Set activation policy to Accessory (no dock icon, like LSUIElement)
             #[cfg(target_os = "macos")]
             {
+                // Load AVFoundation so the permissions plugin can find AVCaptureDevice
+                extern "C" {
+                    fn dlopen(filename: *const std::ffi::c_char, flags: i32) -> *mut std::ffi::c_void;
+                }
+                const RTLD_LAZY: i32 = 0x1;
+                unsafe {
+                    dlopen(
+                        b"/System/Library/Frameworks/AVFoundation.framework/AVFoundation\0".as_ptr()
+                            as *const _,
+                        RTLD_LAZY,
+                    );
+                }
+
+                // Set activation policy to Accessory (no dock icon, like LSUIElement)
                 use cocoa::appkit::{NSApp, NSApplication, NSApplicationActivationPolicy};
                 unsafe {
                     let ns_app = NSApp();
@@ -64,6 +78,12 @@ pub fn run() {
                 .app_data_dir()
                 .expect("failed to get app data dir");
             app.manage(ModelState(Mutex::new(ModelManager::new(app_data_dir))));
+
+            // Load the selected model into the transcription engine
+            commands::settings::load_selected_model(app.handle());
+
+            // Sync coordinator settings from store (auto_paste, language, filler words)
+            commands::settings::sync_coordinator_settings(app.handle());
 
             // Set up system tray
             tray::setup_tray(app.handle())?;
@@ -98,6 +118,7 @@ pub fn run() {
             commands::state::cmd_stop_and_transcribe,
             commands::state::cmd_cancel_recording,
             commands::state::copy_to_clipboard,
+            commands::state::quit_app,
             commands::state::relaunch_app,
             commands::profiles::list_profiles,
             commands::profiles::get_active_profile_index,
@@ -111,7 +132,6 @@ pub fn run() {
             commands::settings::update_setting,
             commands::settings::open_settings,
             commands::permissions::check_permissions,
-            commands::permissions::open_permission_settings,
             commands::permissions::reset_permissions,
             commands::update::check_for_update,
             commands::update::install_update,
