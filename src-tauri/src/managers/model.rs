@@ -105,7 +105,7 @@ impl ModelManager {
                 display_name: "Parakeet V3 (~478 MB) - Fast & Multilingual".into(),
                 size: "478MB".into(),
                 languages: Self::parakeet_v3_languages(),
-                download_url: "https://blob.handy.computer/models/parakeet-tdt_ctc-110m-onnx-int8.tar.gz".into(),
+                download_url: "https://storage.googleapis.com/speech-app-models/parakeet-tdt_ctc-110m-onnx-int8.tar.gz".into(),
                 is_directory: true,
             },
         ]

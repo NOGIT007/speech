@@ -1,6 +1,7 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
+  import { getVersion } from "@tauri-apps/api/app";
   import { onMount, onDestroy } from "svelte";
   import TranscriptionRow from "./TranscriptionRow.svelte";
   import type { AppPhase, TranscriptionItem, Settings } from "../lib/types";
@@ -9,12 +10,18 @@
   let history = $state<TranscriptionItem[]>([]);
   let errorMessage = $state<string | null>(null);
   let recordHotkey = $state("Alt+Space");
+  let appVersion = $state("...");
   let unlisteners: (() => void)[] = [];
 
   onMount(async () => {
     await refreshState();
 
-    // Load hotkey display
+    // Load version and hotkey
+    try {
+      appVersion = await getVersion();
+    } catch {
+      appVersion = "3.1.0";
+    }
     try {
       const settings = (await invoke("get_settings")) as Settings;
       recordHotkey = settings.recordHotkey;
@@ -97,9 +104,11 @@
   }
 
   async function quit() {
-    await invoke("plugin:shell|exit", { exitCode: 0 }).catch(() => {
+    try {
+      await invoke("quit_app");
+    } catch {
       window.close();
-    });
+    }
   }
 
   function statusText(): string {
@@ -261,6 +270,6 @@
 
   <!-- Version -->
   <div class="px-3 py-2 text-center">
-    <span class="text-[10px] text-white/20">Speech v3.0.0</span>
+    <span class="text-[10px] text-white/20">Speech v{appVersion}</span>
   </div>
 </div>

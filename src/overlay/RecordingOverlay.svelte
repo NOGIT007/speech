@@ -47,45 +47,45 @@
 
 <div class="flex items-center justify-center w-full h-full">
   <div
-    class="flex flex-col items-center gap-3.5 px-7 py-5 rounded-[18px]"
-    style="background: rgba(0, 0, 0, 0.6); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);"
+    class="flex flex-col items-center gap-4 px-10 py-7 rounded-[22px]"
+    style="background: rgba(0, 0, 0, 0.65); box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);"
   >
     {#if mode === "recording"}
       <AudioWaveform />
 
-      <p class="text-base font-semibold text-white/90">
+      <p class="text-lg font-semibold text-white/90">
         Recording...
       </p>
 
-      <p class="text-xs text-white/60">
+      <p class="text-sm text-white/55">
         Release to transcribe &middot; Esc to cancel
       </p>
 
     {:else if mode === "processing"}
-      <div class="flex items-center justify-center" style="height: 85px;">
+      <div class="flex items-center justify-center" style="height: 105px;">
         <div class="spinner"></div>
       </div>
 
-      <p class="text-base font-semibold text-white/90">
+      <p class="text-lg font-semibold text-white/90">
         Processing...
       </p>
 
-      <p class="text-xs text-white/60">
+      <p class="text-sm text-white/55">
         {autoPaste ? "Will auto-paste when ready" : "Will copy to clipboard"}
       </p>
 
     {:else if mode === "ready"}
-      <div class="flex items-center justify-center" style="height: 85px;">
+      <div class="flex items-center justify-center" style="height: 105px;">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#22c55e" class="w-12 h-12">
           <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd" />
         </svg>
       </div>
 
-      <p class="text-base font-semibold text-white/90">
+      <p class="text-lg font-semibold text-white/90">
         Ready!
       </p>
 
-      <p class="text-xs text-white/60">
+      <p class="text-sm text-white/55">
         {autoPaste ? "Pasted!" : "Press \u2318V to paste"}
       </p>
     {/if}

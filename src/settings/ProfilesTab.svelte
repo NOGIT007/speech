@@ -51,8 +51,10 @@
     try {
       const result = (await invoke("list_models", {
         activeModelId: null,
-      })) as { id: string; displayName: string }[];
-      models = result.map((m) => ({ id: m.id, displayName: m.displayName }));
+      })) as { id: string; displayName: string; downloaded: boolean }[];
+      models = result
+        .filter((m) => m.downloaded)
+        .map((m) => ({ id: m.id, displayName: m.displayName }));
     } catch (e) {
       console.error("Failed to load models:", e);
     }

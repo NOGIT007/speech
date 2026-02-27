@@ -83,32 +83,14 @@ pub fn copy_to_clipboard(text: String) -> Result<(), String> {
     Ok(())
 }
 
-/// Relaunch the application.
-/// Matches MenuBarView.swift:201-211.
+/// Quit the application.
 #[tauri::command]
-pub fn relaunch_app() -> Result<(), String> {
-    #[cfg(target_os = "macos")]
-    {
-        if let Ok(exe) = std::env::current_exe() {
-            // Navigate up from binary to .app bundle
-            let app_bundle = exe
-                .parent() // MacOS
-                .and_then(|p| p.parent()) // Contents
-                .and_then(|p| p.parent()); // .app
+pub fn quit_app(app: AppHandle) {
+    app.exit(0);
+}
 
-            if let Some(app_path) = app_bundle {
-                let _ = std::process::Command::new("open")
-                    .arg("-n")
-                    .arg(app_path)
-                    .spawn();
-            }
-        }
-
-        std::thread::spawn(|| {
-            std::thread::sleep(std::time::Duration::from_millis(500));
-            std::process::exit(0);
-        });
-    }
-
-    Ok(())
+/// Relaunch the application.
+#[tauri::command]
+pub fn relaunch_app(app: AppHandle) {
+    app.restart();
 }

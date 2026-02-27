@@ -19,12 +19,12 @@ pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
     let quit_item = MenuItem::with_id(app, "quit", "Quit Speech", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&settings_item, &quit_item])?;
 
-    // Load the tray-specific icon (small template icon for macOS menu bar)
-    let icon = tauri::include_image!("icons/tray-icon.png");
+    // Load the branded colored icon for macOS menu bar
+    let icon = tauri::include_image!("icons/32x32.png");
 
     let _tray = TrayIconBuilder::new()
         .icon(icon)
-        .icon_as_template(true)
+        .icon_as_template(false)
         .tooltip("Speech")
         .menu(&menu)
         .show_menu_on_left_click(false)

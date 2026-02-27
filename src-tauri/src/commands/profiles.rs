@@ -213,6 +213,9 @@ fn apply_active_profile(
     store.set("selectedModel", serde_json::json!(profile.model_id));
     store.set("selectedLanguage", serde_json::json!(profile.language));
 
+    // Load the new model into the transcription engine
+    crate::commands::settings::load_selected_model(app);
+
     // Show switch overlay
     let _ = app.emit(
         "switch-profile",

@@ -3,8 +3,8 @@
   import { onMount, onDestroy } from "svelte";
 
   const barCount = 5;
-  const minHeight = 8;
-  const maxHeight = 80;
+  const minHeight = 10;
+  const maxHeight = 100;
 
   let audioLevel = $state(0);
   let unlisten: (() => void) | null = null;
@@ -29,12 +29,12 @@
   }
 </script>
 
-<div class="flex items-center justify-center gap-1" style="height: 85px;">
+<div class="flex items-center justify-center gap-1.5" style="height: 105px;">
   {#each Array(barCount) as _, i}
     <div
       class="rounded-sm"
       style="
-        width: 12px;
+        width: 14px;
         height: {barHeight(i)}px;
         background: linear-gradient(to top, #3b82f6, #06b6d4);
         transition: height 80ms ease-out;
