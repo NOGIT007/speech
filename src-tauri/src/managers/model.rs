@@ -112,74 +112,9 @@ impl ModelManager {
                 repo_id: "ggerganov/whisper.cpp".into(),
             },
 
-            // ── Moonshine models (useful-sensors, English-only, ultra-fast) ──
-            ModelInfo {
-                id: "moonshine-tiny".into(),
-                engine: EngineType::Moonshine,
-                name: "tiny".into(),
-                display_name: "Moonshine Tiny (~31 MB) - Ultra-fast".into(),
-                size: "31MB".into(),
-                languages: Self::english_only(),
-                repo_id: "UsefulSensors/moonshine-tiny-gguf".into(),
-            },
-            ModelInfo {
-                id: "moonshine-base".into(),
-                engine: EngineType::Moonshine,
-                name: "base".into(),
-                display_name: "Moonshine Base (~31 MB) - Fast".into(),
-                size: "31MB".into(),
-                languages: Self::english_only(),
-                repo_id: "UsefulSensors/moonshine-base-gguf".into(),
-            },
-            ModelInfo {
-                id: "moonshine-small".into(),
-                engine: EngineType::Moonshine,
-                name: "small".into(),
-                display_name: "Moonshine Small (~100 MB) - Balanced".into(),
-                size: "100MB".into(),
-                languages: Self::english_only(),
-                repo_id: "UsefulSensors/moonshine-small-gguf".into(),
-            },
-            ModelInfo {
-                id: "moonshine-medium".into(),
-                engine: EngineType::Moonshine,
-                name: "medium".into(),
-                display_name: "Moonshine Medium (~192 MB) - Accurate".into(),
-                size: "192MB".into(),
-                languages: Self::english_only(),
-                repo_id: "UsefulSensors/moonshine-medium-gguf".into(),
-            },
-
-            // ── Parakeet models (NVIDIA, fast CTC-based) ──
-            ModelInfo {
-                id: "parakeet-v2".into(),
-                engine: EngineType::Parakeet,
-                name: "v2".into(),
-                display_name: "Parakeet V2 (~473 MB) - English Only".into(),
-                size: "473MB".into(),
-                languages: Self::english_only(),
-                repo_id: "nvidia/parakeet-tdt-0.6b-v2".into(),
-            },
-            ModelInfo {
-                id: "parakeet-v3".into(),
-                engine: EngineType::Parakeet,
-                name: "v3".into(),
-                display_name: "Parakeet V3 (~478 MB) - 25 Languages".into(),
-                size: "478MB".into(),
-                languages: Self::parakeet_v3_languages(),
-                repo_id: "nvidia/parakeet-tdt-0.6b-v3".into(),
-            },
-
-            // ── SenseVoice (FunAudioLLM, CJK-focused) ──
-            ModelInfo {
-                id: "sensevoice-small".into(),
-                engine: EngineType::SenseVoice,
-                name: "small".into(),
-                display_name: "SenseVoice Small (~160 MB) - CJK + English".into(),
-                size: "160MB".into(),
-                languages: Self::sensevoice_languages(),
-                repo_id: "FunAudioLLM/SenseVoiceSmall".into(),
-            },
+            // NOTE: Moonshine, Parakeet, and SenseVoice are not yet supported
+            // by the transcription engine (whisper-rs only). They will be added
+            // back when their engines are implemented.
         ]
     }
 
@@ -270,9 +205,24 @@ impl ModelManager {
     }
 
     /// Check if a model is downloaded locally.
+    /// Verifies the directory contains at least one model file (.bin, .gguf, or .onnx),
+    /// not just that the directory exists (which can happen after a failed download).
     pub fn is_model_downloaded(&self, model_id: &str) -> bool {
         let model_dir = self.models_dir.join(model_id);
-        model_dir.exists()
+        if !model_dir.exists() {
+            return false;
+        }
+        // Check for actual model files inside
+        if let Ok(entries) = std::fs::read_dir(&model_dir) {
+            for entry in entries.flatten() {
+                if let Some(ext) = entry.path().extension().and_then(|e| e.to_str()) {
+                    if ext == "bin" || ext == "gguf" || ext == "onnx" {
+                        return true;
+                    }
+                }
+            }
+        }
+        false
     }
 
     /// Get the local path for a model.
@@ -323,9 +273,6 @@ impl ModelManager {
     pub fn list_models_grouped(&self) -> Vec<EngineGroup> {
         let engines = [
             EngineType::Whisper,
-            EngineType::Moonshine,
-            EngineType::Parakeet,
-            EngineType::SenseVoice,
         ];
 
         engines
