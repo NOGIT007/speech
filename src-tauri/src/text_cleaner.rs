@@ -4,6 +4,7 @@ use std::sync::LazyLock;
 struct FillerPatterns {
     phrases: Vec<Regex>,
     words: Vec<Regex>,
+    artifacts: Regex,
     spaces: Regex,
 }
 
@@ -18,11 +19,15 @@ static FILLER_PATTERNS: LazyLock<FillerPatterns> = LazyLock::new(|| {
         .map(|w| Regex::new(&format!(r"(?i)\b{}\b", regex::escape(w))).unwrap())
         .collect();
 
+    // Model artifacts: bracketed tokens like [BLANK_AUDIO], (silence), *inaudible*, etc.
+    let artifacts = Regex::new(r"(?i)\[BLANK_AUDIO\]|\[blank_audio\]|\(blank audio\)|\[SILENCE\]|\[MUSIC\]|\[APPLAUSE\]|\[LAUGHTER\]|\*inaudible\*|\(inaudible\)").unwrap();
+
     let spaces = Regex::new(r"\s{2,}").unwrap();
 
     FillerPatterns {
         phrases,
         words,
+        artifacts,
         spaces,
     }
 });
@@ -32,6 +37,9 @@ static FILLER_PATTERNS: LazyLock<FillerPatterns> = LazyLock::new(|| {
 pub fn clean(text: &str) -> String {
     let patterns = &*FILLER_PATTERNS;
     let mut result = text.to_string();
+
+    // Remove model artifacts like [BLANK_AUDIO], [SILENCE], etc.
+    result = patterns.artifacts.replace_all(&result, "").to_string();
 
     // Remove filler phrases first (multi-word, case-insensitive, word boundaries)
     for re in &patterns.phrases {
@@ -114,5 +122,19 @@ mod tests {
     #[test]
     fn test_no_fillers() {
         assert_eq!(clean("Hello world"), "Hello world");
+    }
+
+    #[test]
+    fn test_blank_audio_removal() {
+        assert_eq!(clean("[BLANK_AUDIO]"), "");
+        assert_eq!(clean("[BLANK_AUDIO] Hello"), "Hello");
+        assert_eq!(clean("Hello [BLANK_AUDIO] world"), "Hello world");
+    }
+
+    #[test]
+    fn test_model_artifacts_removal() {
+        assert_eq!(clean("[SILENCE]"), "");
+        assert_eq!(clean("[MUSIC] Hello"), "Hello");
+        assert_eq!(clean("Hello [LAUGHTER] world"), "Hello world");
     }
 }

@@ -2,7 +2,7 @@
 set -e
 
 APP_NAME="Speech"
-VERSION="3.3.0"
+VERSION="3.4.0"
 
 echo "Building $APP_NAME v$VERSION with Tauri..."
 

@@ -325,25 +325,32 @@ pub fn stop_and_transcribe(app: &AppHandle) -> Result<(), String> {
         let app_clone = app.clone();
         let text_clone = text.clone();
 
-        // Extract the previous app PID while we have the lock
-        let prev_pid = {
+        // Extract the previous app PID and generation while we have the lock
+        let (prev_pid, paste_gen) = {
             let paste = app.state::<PasteState>();
             let paste_mgr = paste.0.lock().map_err(|e| e.to_string())?;
-            paste_mgr.get_previous_app_pid()
+            (paste_mgr.get_previous_app_pid(), paste_mgr.get_generation())
         };
 
         tauri::async_runtime::spawn(async move {
-            if let Err(e) =
+            let inject_result =
                 crate::managers::paste::inject_text_with_pid(&text_clone, auto_paste, prev_pid)
-                    .await
-            {
-                tracing::error!("Failed to inject text: {}", e);
-                let _ = app_clone.emit(EVENT_ERROR, format!("Paste failed: {}", e));
+                    .await;
+            match &inject_result {
+                Ok(()) => {
+                    let _ = app_clone.emit("paste-result", "success");
+                }
+                Err(e) => {
+                    tracing::error!("Failed to inject text: {}", e);
+                    let _ = app_clone.emit("paste-result", "failed");
+                    let _ = app_clone.emit("overlay-mode", "error");
+                    let _ = app_clone.emit(EVENT_ERROR, format!("Paste failed: {}", e));
+                }
             }
-            // Clear the saved app reference after injection
+            // Clear the saved app reference after injection (generation-aware)
             {
                 let paste = app_clone.state::<PasteState>();
-                let _ = paste.0.lock().map(|mgr| mgr.clear_previous_app());
+                let _ = paste.0.lock().map(|mgr| mgr.clear_previous_app_gen(paste_gen));
             }
         });
     }
@@ -366,7 +373,7 @@ pub fn stop_and_transcribe(app: &AppHandle) -> Result<(), String> {
     let auto_paste_clone = auto_paste;
     let app_hide = app.clone();
     tauri::async_runtime::spawn(async move {
-        let delay_ms = if auto_paste_clone { 500 } else { 1000 };
+        let delay_ms = if auto_paste_clone { 1200 } else { 1000 };
         tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
         if let Some(window) = app_hide.get_webview_window("recording-overlay") {
             let _ = window.hide();

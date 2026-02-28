@@ -256,7 +256,7 @@ fn process_audio_f32(
     // Compute RMS level (matching AudioRecorder.swift:81-86)
     let sum: f32 = mono.iter().map(|s| s * s).sum();
     let rms = (sum / mono.len() as f32).sqrt();
-    let normalized = (rms * 5.0).min(1.0);
+    let normalized = (rms * 12.0).min(1.0);
     level.store(normalized.to_bits(), Ordering::Relaxed);
 
     // Resample to target rate using simple linear interpolation

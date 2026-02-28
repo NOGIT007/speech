@@ -1,6 +1,6 @@
 [package]
 name = "speech"
-version = "3.3.0"
+version = "3.4.0"
 description = "macOS menu bar app for speech-to-text"
 authors = ["kennetkusk"]
 edition = "2021"

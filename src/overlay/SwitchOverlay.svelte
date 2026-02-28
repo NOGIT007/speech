@@ -8,6 +8,16 @@
   let visible = $state(false);
   let unlisteners: (() => void)[] = [];
 
+  const palette = ["#3b82f6", "#22c55e", "#f59e0b", "#ef4444", "#a855f7", "#06b6d4"];
+
+  function profileColor(name: string): string {
+    let sum = 0;
+    for (let i = 0; i < name.length; i++) {
+      sum += name.charCodeAt(i);
+    }
+    return palette[sum % palette.length];
+  }
+
   onMount(async () => {
     const u1 = await listen<{
       profileName: string;
@@ -27,7 +37,6 @@
   });
 
   function formatModelName(id: string): string {
-    // Convert model IDs like "whisper-small" to "Small"
     const parts = id.split("-");
     if (parts.length > 1) {
       return parts
@@ -78,12 +87,42 @@
 <div class="flex items-center justify-center w-full h-full">
   {#if visible}
     <div
-      class="flex flex-col items-center gap-1.5 px-6 py-4 rounded-[14px] bg-black/60 shadow-lg shadow-black/20"
+      class="switch-enter flex flex-col items-center gap-1.5 px-6 py-4 rounded-[14px]"
+      style="
+        background: linear-gradient(135deg, rgba(30,30,30,0.72), rgba(20,20,20,0.78));
+        backdrop-filter: blur(40px) saturate(1.4);
+        -webkit-backdrop-filter: blur(40px) saturate(1.4);
+        border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: 0 12px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+      "
     >
-      <p class="text-lg font-semibold text-white">{profileName}</p>
+      <div class="flex items-center gap-2">
+        <div
+          class="rounded-full shrink-0"
+          style="width: 8px; height: 8px; background: {profileColor(profileName)};"
+        ></div>
+        <p class="text-lg font-semibold text-white">{profileName}</p>
+      </div>
       <p class="text-[13px] text-white/70">
         {modelId} &middot; {language}
       </p>
     </div>
   {/if}
 </div>
+
+<style>
+  @keyframes switchEnter {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .switch-enter {
+    animation: switchEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+</style>

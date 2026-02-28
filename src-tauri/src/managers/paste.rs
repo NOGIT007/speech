@@ -6,19 +6,23 @@ use std::sync::Mutex;
 pub struct PasteManager {
     /// PID of the app that was focused before recording started
     previous_app_pid: Mutex<Option<i32>>,
+    /// Generation counter for safe async clearing (A6)
+    generation: Mutex<u64>,
 }
 
 impl PasteManager {
     pub fn new() -> Self {
         Self {
             previous_app_pid: Mutex::new(None),
+            generation: Mutex::new(0),
         }
     }
 
     /// Save the currently focused app's PID before recording.
     /// Matches TextInjector.swift:15-17.
     /// Skips saving if the frontmost app is Speech itself (accessory app edge case).
-    pub fn save_focused_app(&self) {
+    /// Returns the new generation counter value.
+    pub fn save_focused_app(&self) -> u64 {
         #[cfg(target_os = "macos")]
         {
             let pid = get_frontmost_app_pid();
@@ -27,16 +31,25 @@ impl PasteManager {
             if let Some(p) = pid {
                 if p == my_pid {
                     tracing::warn!("Frontmost app is Speech itself (PID {}), keeping previous saved PID", p);
-                    return; // Don't overwrite with our own PID
+                    return *self.generation.lock().unwrap();
                 }
             }
 
             *self.previous_app_pid.lock().unwrap() = pid;
+            let mut gen = self.generation.lock().unwrap();
+            *gen += 1;
             if let Some(pid) = pid {
-                tracing::info!("Saved focused app PID: {}", pid);
+                tracing::info!("Saved focused app PID: {} (gen={})", pid, *gen);
             } else {
-                tracing::warn!("No frontmost app found to save");
+                tracing::warn!("No frontmost app found to save (gen={})", *gen);
             }
+            *gen
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            let mut gen = self.generation.lock().unwrap();
+            *gen += 1;
+            *gen
         }
     }
 
@@ -45,9 +58,28 @@ impl PasteManager {
         *self.previous_app_pid.lock().unwrap() = None;
     }
 
+    /// Clear the saved previous app reference only if the generation matches.
+    /// Prevents a stale async clear from wiping a newer save.
+    pub fn clear_previous_app_gen(&self, expected_gen: u64) {
+        let gen = self.generation.lock().unwrap();
+        if *gen == expected_gen {
+            *self.previous_app_pid.lock().unwrap() = None;
+        } else {
+            tracing::debug!(
+                "Skipping clear: expected gen={}, current gen={}",
+                expected_gen, *gen
+            );
+        }
+    }
+
     /// Get the saved previous app PID (used to pass to standalone inject function).
     pub fn get_previous_app_pid(&self) -> Option<i32> {
         *self.previous_app_pid.lock().unwrap()
+    }
+
+    /// Get the current generation counter.
+    pub fn get_generation(&self) -> u64 {
+        *self.generation.lock().unwrap()
     }
 }
 
@@ -55,6 +87,8 @@ impl PasteManager {
 /// This avoids holding a MutexGuard across await points.
 /// Matches TextInjector.swift:23-77.
 pub async fn inject_text_with_pid(text: &str, auto_paste: bool, prev_pid: Option<i32>) -> Result<()> {
+    let fn_start = std::time::Instant::now();
+
     tracing::info!(
         "inject_text_with_pid: auto_paste={}, prev_pid={:?}, text_len={}",
         auto_paste, prev_pid, text.len()
@@ -64,47 +98,78 @@ pub async fn inject_text_with_pid(text: &str, auto_paste: bool, prev_pid: Option
     set_clipboard_text(text)?;
     tracing::debug!("Clipboard set with transcribed text");
 
-    // Wait for clipboard to propagate (100ms, matching TextInjector.swift:33)
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    // Wait for clipboard to propagate (reduced from 100ms to 30ms)
+    tokio::time::sleep(std::time::Duration::from_millis(30)).await;
 
-    // Restore focus to previous app
+    // Structured 2-attempt focus restoration
+    let focus_start = std::time::Instant::now();
     if let Some(pid) = prev_pid {
-        tracing::info!("Activating previous app PID: {}", pid);
-        activate_app_by_pid(pid);
-
-        // Wait for app to become active (up to 750ms, matching TextInjector.swift:40-44)
         let mut focus_restored = false;
-        for i in 0..30 {
-            if get_frontmost_app_pid() == Some(pid) {
-                tracing::info!("Focus restored to PID {} after {}ms", pid, i * 25);
-                focus_restored = true;
+        let attempts: [(u64, &str); 2] = [(500, "first"), (300, "second")];
+
+        for (timeout_ms, label) in &attempts {
+            tracing::info!("Focus restore {} attempt: activating PID {}", label, pid);
+            activate_app_by_pid(pid);
+
+            let attempt_start = std::time::Instant::now();
+            let timeout = std::time::Duration::from_millis(*timeout_ms);
+
+            loop {
+                if get_frontmost_app_pid() == Some(pid) {
+                    tracing::info!(
+                        "Focus restored to PID {} after {:?} ({} attempt)",
+                        pid, attempt_start.elapsed(), label
+                    );
+                    focus_restored = true;
+                    break;
+                }
+                if attempt_start.elapsed() >= timeout {
+                    tracing::warn!(
+                        "Focus restore timeout after {}ms ({} attempt)",
+                        timeout_ms, label
+                    );
+                    break;
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+            }
+
+            if focus_restored {
                 break;
             }
-            tokio::time::sleep(std::time::Duration::from_millis(25)).await;
         }
+        tracing::info!("Focus restoration took {:?}", focus_start.elapsed());
 
         if !focus_restored {
             let current = get_frontmost_app_pid();
             tracing::warn!(
-                "Failed to restore focus to PID {}. Current frontmost: {:?}",
+                "Failed to restore focus to PID {} after 2 attempts. Current frontmost: {:?}. Text remains on clipboard for manual Cmd+V.",
                 pid, current
             );
-            // Try activation again
-            activate_app_by_pid(pid);
-            tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+            tracing::info!("inject_text_with_pid total elapsed: {:?}", fn_start.elapsed());
+            return Err(anyhow::anyhow!(
+                "Focus restoration failed: target PID {} not frontmost after 2 attempts (current: {:?})",
+                pid, current
+            ));
         }
     } else {
         tracing::warn!("No previous app PID saved, cannot restore focus");
+        tracing::info!("Focus restoration section took {:?}", focus_start.elapsed());
     }
 
-    // Buffer after focus restoration (100ms, matching TextInjector.swift:48)
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    // Buffer after focus restoration (reduced from 100ms to 30ms)
+    tokio::time::sleep(std::time::Duration::from_millis(30)).await;
 
-    // Set clipboard AGAIN after focus restore (matching TextInjector.swift:51)
-    set_clipboard_text(text)?;
+    // Clipboard verification: only re-set if contents don't match
+    let needs_reclip = get_clipboard_text().as_deref() != Some(text);
+    if needs_reclip {
+        set_clipboard_text(text)?;
+        tracing::debug!("Clipboard re-set after focus restore (contents didn't match)");
+    } else {
+        tracing::debug!("Clipboard contents verified, skipping re-set");
+    }
 
-    // Final buffer (50ms, matching TextInjector.swift:54)
-    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    // Final buffer (reduced from 50ms to 20ms)
+    tokio::time::sleep(std::time::Duration::from_millis(20)).await;
 
     if auto_paste {
         // Wait for modifier release (matching TextInjector.swift:82-95)
@@ -119,12 +184,16 @@ pub async fn inject_text_with_pid(text: &str, auto_paste: bool, prev_pid: Option
                     pid, current
                 );
                 activate_app_by_pid(pid);
-                tokio::time::sleep(std::time::Duration::from_millis(150)).await;
+                // Reduced from 150ms to 75ms
+                tokio::time::sleep(std::time::Duration::from_millis(75)).await;
             }
         }
 
-        // Simulate Cmd+V (matching TextInjector.swift:98-113)
-        if simulate_paste() {
+        // Simulate Cmd+V via spawn_blocking (uses thread::sleep + CGEvent calls)
+        let paste_ok = tokio::task::spawn_blocking(simulate_paste)
+            .await
+            .unwrap_or(false);
+        if paste_ok {
             tracing::info!("Cmd+V paste simulated successfully");
         } else {
             tracing::error!("Failed to simulate Cmd+V paste");
@@ -134,6 +203,7 @@ pub async fn inject_text_with_pid(text: &str, auto_paste: bool, prev_pid: Option
         tracing::info!("auto_paste disabled, text is on clipboard only");
     }
 
+    tracing::info!("inject_text_with_pid total elapsed: {:?}", fn_start.elapsed());
     Ok(())
 }
 
@@ -249,8 +319,8 @@ async fn wait_for_modifier_release() {
             tokio::time::sleep(std::time::Duration::from_millis(10)).await;
         }
 
-        // Small buffer after modifiers released (50ms, matching TextInjector.swift:94)
-        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        // Small buffer after modifiers released (reduced from 50ms to 25ms)
+        tokio::time::sleep(std::time::Duration::from_millis(25)).await;
     }
 }
 
