@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use anyhow::{Context, Result};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
@@ -85,13 +86,14 @@ pub fn start_recording(state: &AudioState) -> Result<PathBuf> {
     *state.writer.lock().unwrap() = Some(writer);
     *state.recording_path.lock().unwrap() = Some(path.clone());
     state.stop_signal.store(false, Ordering::Relaxed);
-    state.is_recording.store(true, Ordering::Relaxed);
 
     let writer_ref = Arc::clone(&state.writer);
     let level_ref = Arc::clone(&state.level);
     let stop_ref = Arc::clone(&state.stop_signal);
-    let is_recording_ref = Arc::clone(&state.is_recording);
     let target_rate = 16000u32;
+
+    // Channel so the audio thread can signal when stream.play() succeeds/fails
+    let (tx, rx) = std::sync::mpsc::channel::<Result<()>>();
 
     // Spawn a dedicated thread for the audio stream (cpal::Stream is !Send on macOS)
     std::thread::spawn(move || {
@@ -168,7 +170,7 @@ pub fn start_recording(state: &AudioState) -> Result<PathBuf> {
             }
             format => {
                 tracing::error!("Unsupported sample format: {:?}", format);
-                is_recording_ref.store(false, Ordering::Relaxed);
+                let _ = tx.send(Err(anyhow::anyhow!("Unsupported sample format: {:?}", format)));
                 return;
             }
         };
@@ -177,15 +179,16 @@ pub fn start_recording(state: &AudioState) -> Result<PathBuf> {
             Ok(stream) => {
                 if let Err(e) = stream.play() {
                     tracing::error!("Failed to start audio stream: {}", e);
-                    is_recording_ref.store(false, Ordering::Relaxed);
+                    let _ = tx.send(Err(anyhow::anyhow!("Failed to start audio stream: {}", e)));
                     return;
                 }
 
                 tracing::info!("Audio stream started, waiting for stop signal");
+                let _ = tx.send(Ok(()));
 
                 // Keep the stream alive until stop signal
                 while !stop_ref.load(Ordering::Relaxed) {
-                    std::thread::sleep(std::time::Duration::from_millis(10));
+                    std::thread::sleep(Duration::from_millis(10));
                 }
 
                 // Stream is dropped here, stopping capture
@@ -194,13 +197,34 @@ pub fn start_recording(state: &AudioState) -> Result<PathBuf> {
             }
             Err(e) => {
                 tracing::error!("Failed to build audio stream: {}", e);
-                is_recording_ref.store(false, Ordering::Relaxed);
+                let _ = tx.send(Err(anyhow::anyhow!("Failed to build audio stream: {}", e)));
             }
         }
     });
 
-    tracing::info!("Recording started: {}", path.display());
-    Ok(path)
+    // Wait for the audio thread to confirm the stream is playing
+    match rx.recv_timeout(Duration::from_secs(2)) {
+        Ok(Ok(())) => {
+            state.is_recording.store(true, Ordering::Relaxed);
+            tracing::info!("Recording started: {}", path.display());
+            Ok(path)
+        }
+        Ok(Err(e)) => {
+            // Stream setup failed — clean up
+            state.is_recording.store(false, Ordering::Relaxed);
+            *state.writer.lock().unwrap() = None;
+            *state.recording_path.lock().unwrap() = None;
+            Err(e)
+        }
+        Err(_) => {
+            // Timeout — stream never confirmed
+            state.stop_signal.store(true, Ordering::Relaxed);
+            state.is_recording.store(false, Ordering::Relaxed);
+            *state.writer.lock().unwrap() = None;
+            *state.recording_path.lock().unwrap() = None;
+            anyhow::bail!("Audio stream startup timed out")
+        }
+    }
 }
 
 /// Stop recording and finalize the WAV file.

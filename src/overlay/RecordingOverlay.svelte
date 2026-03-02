@@ -83,7 +83,7 @@
         "
       >
         <AudioWaveform />
-        <p class="text-lg font-semibold text-white/90">Recording...</p>
+        <p class="text-lg font-semibold text-white/90">Speak now</p>
         <p class="text-sm text-white/55">Release to transcribe &middot; Esc to cancel</p>
       </div>
 
