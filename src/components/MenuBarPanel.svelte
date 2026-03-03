@@ -167,7 +167,7 @@
       </div>
       <div>
         <p class="text-[13px] font-semibold">{statusText()}</p>
-        <p class="text-[11px] text-white/40">
+        <p class="text-[11px] text-white/50">
           Hold {formatHotkey(recordHotkey)} to dictate
         </p>
       </div>
@@ -180,10 +180,10 @@
   {#if history.length > 0}
     <div class="flex-1 overflow-y-auto" style="mask-image: linear-gradient(to bottom, black 85%, transparent 100%);">
       <div class="flex items-center justify-between px-3 pt-2 pb-1">
-        <span class="text-[11px] font-medium text-white/40">Recent</span>
+        <span class="text-[11px] font-medium text-white/50">Recent</span>
         {#if history.length > 1}
           <button
-            class="text-[10px] text-white/30 hover:text-white/50 transition-colors"
+            class="text-[11px] text-white/40 hover:text-white/50 transition-colors"
             onclick={clearHistory}
           >
             Clear
@@ -206,7 +206,7 @@
         <path d="M8.25 4.5a3.75 3.75 0 117.5 0v8.25a3.75 3.75 0 11-7.5 0V4.5z" />
         <path d="M6 10.5a.75.75 0 01.75.75v1.5a5.25 5.25 0 1010.5 0v-1.5a.75.75 0 011.5 0v1.5a6.751 6.751 0 01-6 6.709v2.291h3a.75.75 0 010 1.5h-7.5a.75.75 0 010-1.5h3v-2.291a6.751 6.751 0 01-6-6.709v-1.5A.75.75 0 016 10.5z" />
       </svg>
-      <p class="text-[12px] text-white/40">Hold {formatHotkey(recordHotkey)} to dictate</p>
+      <p class="text-[12px] text-white/50">Hold {formatHotkey(recordHotkey)} to dictate</p>
     </div>
 
     <div class="h-px bg-gradient-to-r from-transparent via-white/8 to-transparent"></div>
@@ -287,6 +287,6 @@
 
   <!-- Version -->
   <div class="px-3 py-2 text-center">
-    <span class="text-[9px] text-white/30">Speech v{appVersion}</span>
+    <span class="text-[11px] text-white/45">Speech v{appVersion}</span>
   </div>
 </div>

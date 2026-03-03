@@ -2,16 +2,21 @@
   import { listen } from "@tauri-apps/api/event";
   import { onMount, onDestroy } from "svelte";
 
-  const barCount = 5;
-  const minHeight = 8;
-  const maxHeight = 64;
+  const BAR_COUNT = 80;
+  const BAR_WIDTH = 2;
+  const BAR_GAP = 1.5;
+  const MIN_HEIGHT = 2;
+  const MAX_HEIGHT = 48;
+  const CANVAS_HEIGHT = 56;
 
-  let audioLevel = $state(0);
+  // Rolling buffer: newest sample at the center, older samples toward edges
+  let samples: number[] = $state(new Array(BAR_COUNT).fill(0));
   let unlisten: (() => void) | null = null;
 
   onMount(async () => {
     unlisten = await listen<number>("audio-level", (event) => {
-      audioLevel = event.payload;
+      // Push new sample and shift oldest off the front
+      samples = [...samples.slice(1), event.payload];
     });
   });
 
@@ -19,35 +24,53 @@
     unlisten?.();
   });
 
-  function barHeight(index: number): number {
-    const center = (barCount - 1) / 2.0;
-    const centerDistance = Math.abs(index - center) / Math.max(center, 1);
-    const variation = 1.0 - Math.pow(centerDistance, 2) * 0.5;
-    // Square root curve: small audio levels still produce tall bars
-    const boosted = Math.sqrt(audioLevel);
-    const level = boosted * variation;
-    return minHeight + (maxHeight - minHeight) * level;
+  // Map a sample index to bar height. The buffer stores oldest-first,
+  // so index BAR_COUNT-1 is the newest (center). We mirror from center outward.
+  function getBarHeight(visualIndex: number): number {
+    // visualIndex 0 = leftmost, BAR_COUNT-1 = rightmost
+    // center = newest sample, edges = oldest
+    const center = (BAR_COUNT - 1) / 2;
+    const distFromCenter = Math.abs(visualIndex - center);
+    // Map visual position back to buffer index:
+    // center -> last element (newest), edges -> first elements (oldest)
+    const bufferIndex = Math.round(BAR_COUNT - 1 - distFromCenter);
+    const level = samples[bufferIndex] ?? 0;
+    const boosted = Math.sqrt(level);
+    return MIN_HEIGHT + (MAX_HEIGHT - MIN_HEIGHT) * boosted;
   }
 
-  function barGradient(): string {
-    if (audioLevel > 0.7) {
-      return "linear-gradient(to top, #3b82f6, #06b6d4, #e0f2fe)";
-    }
-    return "linear-gradient(to top, #3b82f6, #06b6d4)";
+  function barOpacity(visualIndex: number): number {
+    const center = (BAR_COUNT - 1) / 2;
+    const distFromCenter = Math.abs(visualIndex - center);
+    const normalized = distFromCenter / center;
+    // Fade out toward edges
+    return 1.0 - normalized * 0.6;
   }
 </script>
 
-<div class="flex items-end justify-center gap-[5px]" style="height: 64px;">
-  {#each Array(barCount) as _, i}
-    <div
-      class="rounded-full"
-      style="
-        width: 4px;
-        height: {barHeight(i)}px;
-        background: {barGradient()};
-        box-shadow: 0 0 8px rgba(59,130,246,0.3);
-        transition: height 60ms cubic-bezier(0.33, 1, 0.68, 1);
-      "
-    ></div>
-  {/each}
+<div class="relative" style="height: {CANVAS_HEIGHT}px; width: {BAR_COUNT * (BAR_WIDTH + BAR_GAP)}px;">
+  <!-- Dotted baseline -->
+  <div
+    class="absolute left-0 right-0"
+    style="
+      top: 50%;
+      border-top: 1px dashed rgba(255,255,255,0.15);
+    "
+  ></div>
+
+  <!-- Bars centered vertically -->
+  <div class="flex items-center justify-center h-full" style="gap: {BAR_GAP}px;">
+    {#each Array(BAR_COUNT) as _, i}
+      {@const h = getBarHeight(i)}
+      <div
+        style="
+          width: {BAR_WIDTH}px;
+          height: {h}px;
+          background: rgba(255,255,255,{barOpacity(i) * 0.9});
+          border-radius: 1px;
+          transition: height 50ms linear;
+        "
+      ></div>
+    {/each}
+  </div>
 </div>

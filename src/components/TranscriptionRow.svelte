@@ -47,7 +47,7 @@
   >
     <div class="flex-1 min-w-0">
       <p class="text-[13px] text-white/80 line-clamp-2">{item.preview}</p>
-      <p class="text-[10px] text-white/25 mt-0.5">{timeAgo(item.timestamp)}</p>
+      <p class="text-[11px] text-white/40 mt-0.5">{timeAgo(item.timestamp)}</p>
     </div>
     {#if copied}
       <svg

@@ -435,17 +435,49 @@ pub fn setup_hotkey_listeners(app: &AppHandle) -> Result<(), String> {
 }
 
 /// Position the overlay window centered on the screen containing the cursor.
-/// Matches RecordingOverlay.swift:32-37.
+/// Finds which monitor the cursor is on, then centers the overlay on that monitor.
 fn position_overlay_on_cursor_screen(window: &tauri::WebviewWindow) {
-    // Try to get cursor position and center the overlay on that screen
-    if let Ok(cursor_pos) = window.cursor_position() {
-        let width = 460.0;
-        let height = 280.0;
-        let x = cursor_pos.x - width / 2.0;
-        let y = cursor_pos.y - height / 2.0;
-        let _ = window.set_position(tauri::Position::Logical(tauri::LogicalPosition::new(
-            x.max(0.0),
-            y.max(0.0),
-        )));
+    let overlay_w = 460.0_f64;
+    let overlay_h = 280.0_f64;
+
+    // Get cursor position to determine which monitor it's on
+    let cursor_pos = match window.cursor_position() {
+        Ok(pos) => pos,
+        Err(_) => {
+            let _ = window.center();
+            return;
+        }
+    };
+
+    // Find the monitor containing the cursor
+    if let Ok(monitors) = window.available_monitors() {
+        for monitor in &monitors {
+            let pos = monitor.position();
+            let size = monitor.size();
+            let scale = monitor.scale_factor();
+
+            // Monitor bounds in logical coordinates
+            let mx = pos.x as f64 / scale;
+            let my = pos.y as f64 / scale;
+            let mw = size.width as f64 / scale;
+            let mh = size.height as f64 / scale;
+
+            if cursor_pos.x >= mx
+                && cursor_pos.x < mx + mw
+                && cursor_pos.y >= my
+                && cursor_pos.y < my + mh
+            {
+                // Center the overlay on this monitor
+                let x = mx + (mw - overlay_w) / 2.0;
+                let y = my + (mh - overlay_h) / 2.0;
+                let _ = window.set_position(tauri::Position::Logical(
+                    tauri::LogicalPosition::new(x, y),
+                ));
+                return;
+            }
+        }
     }
+
+    // Fallback: center on primary monitor
+    let _ = window.center();
 }

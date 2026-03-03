@@ -103,7 +103,7 @@
         ></div>
         <p class="text-lg font-semibold text-white">{profileName}</p>
       </div>
-      <p class="text-[13px] text-white/70">
+      <p class="text-[13px] text-white/80">
         {modelId} &middot; {language}
       </p>
     </div>

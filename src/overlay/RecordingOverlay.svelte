@@ -84,7 +84,7 @@
       >
         <AudioWaveform />
         <p class="text-lg font-semibold text-white/90">Speak now</p>
-        <p class="text-sm text-white/55">Release to transcribe &middot; Esc to cancel</p>
+        <p class="text-sm text-white/65">Release to transcribe &middot; Esc to cancel</p>
       </div>
 
       <!-- Processing -->
@@ -103,7 +103,7 @@
           </div>
         </div>
         <p class="text-lg font-semibold text-white/90">Processing...</p>
-        <p class="text-sm text-white/55">
+        <p class="text-sm text-white/65">
           {autoPaste ? "Will auto-paste when ready" : "Will copy to clipboard"}
         </p>
       </div>
@@ -135,7 +135,7 @@
           </svg>
         </div>
         <p class="text-lg font-semibold text-white/90">Ready!</p>
-        <p class="text-sm text-white/55">
+        <p class="text-sm text-white/65">
           {autoPaste ? "Pasted!" : "Press \u2318V to paste"}
         </p>
       </div>
@@ -157,7 +157,7 @@
           </svg>
         </div>
         <p class="text-lg font-semibold text-red-400">Paste failed</p>
-        <p class="text-sm text-white/55">Text copied — press ⌘V</p>
+        <p class="text-sm text-white/65">Text copied — press ⌘V</p>
       </div>
     </div>
   </div>
