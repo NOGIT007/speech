@@ -2,75 +2,75 @@
   import { listen } from "@tauri-apps/api/event";
   import { onMount, onDestroy } from "svelte";
 
-  const BAR_COUNT = 80;
-  const BAR_WIDTH = 2;
-  const BAR_GAP = 1.5;
-  const MIN_HEIGHT = 2;
-  const MAX_HEIGHT = 48;
-  const CANVAS_HEIGHT = 56;
+  const WIDTH = 280;
+  const HEIGHT = 64;
+  const HISTORY_SIZE = 64;
 
-  // Rolling buffer: newest sample at the center, older samples toward edges
-  let samples: number[] = $state(new Array(BAR_COUNT).fill(0));
+  let canvas: HTMLCanvasElement;
+  let samples: number[] = new Array(HISTORY_SIZE).fill(0);
+  let animFrame: number;
   let unlisten: (() => void) | null = null;
 
   onMount(async () => {
     unlisten = await listen<number>("audio-level", (event) => {
-      // Push new sample and shift oldest off the front
-      samples = [...samples.slice(1), event.payload];
+      samples.push(event.payload);
+      if (samples.length > HISTORY_SIZE) samples.shift();
     });
+    draw();
   });
 
   onDestroy(() => {
     unlisten?.();
+    if (animFrame) cancelAnimationFrame(animFrame);
   });
 
-  // Map a sample index to bar height. The buffer stores oldest-first,
-  // so index BAR_COUNT-1 is the newest (center). We mirror from center outward.
-  function getBarHeight(visualIndex: number): number {
-    // visualIndex 0 = leftmost, BAR_COUNT-1 = rightmost
-    // center = newest sample, edges = oldest
-    const center = (BAR_COUNT - 1) / 2;
-    const distFromCenter = Math.abs(visualIndex - center);
-    // Map visual position back to buffer index:
-    // center -> last element (newest), edges -> first elements (oldest)
-    const bufferIndex = Math.round(BAR_COUNT - 1 - distFromCenter);
-    const level = samples[bufferIndex] ?? 0;
-    const boosted = Math.sqrt(level);
-    return MIN_HEIGHT + (MAX_HEIGHT - MIN_HEIGHT) * boosted;
-  }
+  function draw() {
+    const ctx = canvas?.getContext("2d");
+    if (!ctx) {
+      animFrame = requestAnimationFrame(draw);
+      return;
+    }
 
-  function barOpacity(visualIndex: number): number {
-    const center = (BAR_COUNT - 1) / 2;
-    const distFromCenter = Math.abs(visualIndex - center);
-    const normalized = distFromCenter / center;
-    // Fade out toward edges
-    return 1.0 - normalized * 0.6;
+    ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+    const midY = HEIGHT / 2;
+    const stepX = WIDTH / (HISTORY_SIZE - 1);
+
+    // Draw oscilloscope wave
+    ctx.beginPath();
+    for (let i = 0; i < samples.length; i++) {
+      const level = Math.sqrt(samples[i]); // boost quiet signals
+      // Alternate above/below center based on index for oscillator look
+      const sign = i % 2 === 0 ? 1 : -1;
+      const y = midY + sign * level * (HEIGHT * 0.45);
+      const x = i * stepX;
+
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        // Smooth curve between points
+        const prevLevel = Math.sqrt(samples[i - 1]);
+        const prevSign = (i - 1) % 2 === 0 ? 1 : -1;
+        const prevY = midY + prevSign * prevLevel * (HEIGHT * 0.45);
+        const prevX = (i - 1) * stepX;
+        const cpX = (prevX + x) / 2;
+        ctx.bezierCurveTo(cpX, prevY, cpX, y, x, y);
+      }
+    }
+
+    ctx.strokeStyle = "rgba(168, 85, 247, 0.9)";
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.stroke();
+
+    // Subtle glow
+    ctx.strokeStyle = "rgba(168, 85, 247, 0.2)";
+    ctx.lineWidth = 6;
+    ctx.stroke();
+
+    animFrame = requestAnimationFrame(draw);
   }
 </script>
 
-<div class="relative" style="height: {CANVAS_HEIGHT}px; width: {BAR_COUNT * (BAR_WIDTH + BAR_GAP)}px;">
-  <!-- Dotted baseline -->
-  <div
-    class="absolute left-0 right-0"
-    style="
-      top: 50%;
-      border-top: 1px dashed rgba(255,255,255,0.15);
-    "
-  ></div>
-
-  <!-- Bars centered vertically -->
-  <div class="flex items-center justify-center h-full" style="gap: {BAR_GAP}px;">
-    {#each Array(BAR_COUNT) as _, i}
-      {@const h = getBarHeight(i)}
-      <div
-        style="
-          width: {BAR_WIDTH}px;
-          height: {h}px;
-          background: rgba(255,255,255,{barOpacity(i) * 0.9});
-          border-radius: 1px;
-          transition: height 50ms linear;
-        "
-      ></div>
-    {/each}
-  </div>
-</div>
+<canvas bind:this={canvas} width={WIDTH} height={HEIGHT} style="width: {WIDTH}px; height: {HEIGHT}px;"></canvas>

@@ -2,6 +2,7 @@
   import { listen } from "@tauri-apps/api/event";
   import { onMount, onDestroy } from "svelte";
   import AudioWaveform from "./AudioWaveform.svelte";
+  import appIcon from "../assets/app-icon.png";
 
   type OverlayMode = "recording" | "processing" | "ready" | "error";
 
@@ -63,15 +64,13 @@
   <div
     class="relative flex flex-col items-center gap-4 px-10 py-7 rounded-[22px]"
     style="
-      background: linear-gradient(135deg, rgba(30,30,30,0.72), rgba(20,20,20,0.78));
-      backdrop-filter: blur(40px) saturate(1.4);
-      -webkit-backdrop-filter: blur(40px) saturate(1.4);
-      border: 1px solid rgba(255,255,255,0.08);
-      box-shadow: 0 12px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+      background: rgb(28, 28, 30);
+      border: none;
+      box-shadow: none;
     "
   >
     <!-- All modes rendered simultaneously for smooth transitions -->
-    <div class="relative" style="width: 220px; height: 140px;">
+    <div class="relative" style="width: 280px; height: 170px;">
       <!-- Recording -->
       <div
         class="absolute inset-0 flex flex-col items-center justify-center gap-4"
@@ -82,6 +81,7 @@
           pointer-events: {mode === 'recording' ? 'auto' : 'none'};
         "
       >
+        <img src={appIcon} alt="" width="40" height="40" style="border-radius: 10px; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));" />
         <AudioWaveform />
         <p class="text-lg font-semibold text-white/90">Speak now</p>
         <p class="text-sm text-white/65">Release to transcribe &middot; Esc to cancel</p>
@@ -162,6 +162,7 @@
     </div>
   </div>
 </div>
+
 
 <style>
   .comet-spinner {
